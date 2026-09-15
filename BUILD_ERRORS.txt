@@ -167,3 +167,8 @@ Android Kotlin widget correction — 2026-09-15
 - Run `35013386862` passed Analyze, Test, AGP alignment, and minSdk alignment, then failed at `:app:compileDebugKotlin`.
 - `android/app/src/main/kotlin/com/productchat/studio/native/JournalWidgetProvider.kt` incorrectly contained an Android Manifest `<receiver>` XML block, causing Kotlin `Expecting a top level declaration` errors.
 - Replaced it with a valid `AppWidgetProvider` implementation under `com.productchat.studio.nabd` and updated Manifest receiver name to `.nabd.JournalWidgetProvider`.
+
+Widget package import correction — 2026-09-15
+------------------------------------------------
+- Run `35014275182` reached Kotlin compilation and failed because `MainActivity` and generated `R` were imported from `com.productchat.studio`, while Flutter bootstrap generated them in the application package `com.productchat.studio.nabd`.
+- Removed both incorrect imports; the provider now resolves package-local `MainActivity` and `R` references.

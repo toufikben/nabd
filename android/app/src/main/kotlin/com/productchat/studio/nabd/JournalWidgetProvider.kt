@@ -6,8 +6,6 @@ import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
 import android.widget.RemoteViews
-import com.productchat.studio.MainActivity
-import com.productchat.studio.R
 
 class JournalWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(
