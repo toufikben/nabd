@@ -283,7 +283,7 @@ class _SplashScreenState extends State<SplashScreen> {
                         end: const Offset(3, 3),
                         duration: 2500.ms,
                       )
-                      .fadeOut(),
+                      .fadeOut();
                 }),
                 const Text('🌳', style: TextStyle(fontSize: 120))
                     .animate()

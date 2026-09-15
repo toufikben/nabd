@@ -122,3 +122,11 @@ GitHub Actions verification — 2026-09-15
 - 336 errors originate from `lib/features/stats/weather_screen.dart`. The file contains box-drawing characters and Arabic prose/table text outside a Dart comment or string, producing illegal-character, expected-token, duplicate-definition, and undefined-class errors.
 - Other independent analyzer errors include: missing `WeatherScreen` class reference in `lib/core/router.dart`; missing `AppColors.primaryGlow` in breathing, motivation, and year-review screens; undefined `Mood` in `lib/features/home/home_screen.dart`; syntax errors near line 286 in `lib/features/splash/splash_screen.dart`; invalid `$1`–`$4` record getters in `lib/features/stats/advanced/emotion_radar_screen.dart`; duplicate constants in `word_cloud_screen.dart`; non-constant monetization AdMob initialization; a missing `uiLocalNotificationDateInterpretation` argument in `notification_service.dart`; an incompatible `onAdImpression` callback in `rewarded_ad_service.dart`; and the stale `MyApp` reference in `test/widget_test.dart`.
 - The root issue must be fixed before the workflow can reach `flutter test` or build APK/AAB. No code was silently changed in response to this inspection.
+
+GitHub Actions rerun after v5 fixes — 2026-09-15
+-------------------------------------------------
+- Run: https://github.com/toufikben/nabd/actions/runs/35009616847
+- The 336 weather errors and the other major analyzer errors were resolved.
+- Remaining analyzer failures were only 3 syntax errors at `lib/features/splash/splash_screen.dart:286`: the callback used a comma after a chained `return` expression (`.fadeOut(),`) instead of a semicolon. This has now been corrected to `.fadeOut();`.
+- The run also reported 16 non-fatal warnings, primarily unused imports/locals and a duplicate router import. These do not block the build but should be cleaned after a successful build.
+- GitHub CLI reported a 403 while requesting annotations because the token lacks `checks:read`; this is a reporting-permission warning, not a Dart or Android build error.
