@@ -1,0 +1,51 @@
+NABD BUILD/AUDIT ERRORS
+========================
+Generated: 2026-09-15
+
+Environment
+-----------
+- Flutter SDK is not installed in the sandbox, so `flutter pub get`, `flutter analyze`, `flutter test`, and Android/iOS builds could not be executed here.
+- The source attachments contain 105 logical file entries and 136 code blocks; 75 complete CREATE/REPLACE blocks were materialized.
+
+Source fidelity and replacement notes
+-------------------------------------
+- All 10 attachments are archived under docs/SOURCE_ATTACHMENTS/.
+- The complete code-block manifest is docs/SOURCE_FILE_MANIFEST.json.
+- MODIFY blocks were not silently applied because they are partial updates and several target files are absent; applying them blindly would delete or invent code.
+- Later REPLACE instructions take precedence over earlier CREATE/REPLACE bodies for the same path where a complete replacement was available.
+
+Known materialization problems
+------------------------------
+- Two attachment labels combined multiple paths: `lib/core/l10n/app_en.arb + app_ar.arb`.
+- Two asset labels contained descriptions in the filename: `app_icon_fg.svg (Foreground للأيقونة التكيفية)` and `mood_icons.svg (20 مشاعر)`.
+- The extractor preserved those labels verbatim rather than silently changing source names. They require explicit normalization before a production build.
+- Several referenced files were never supplied as complete CREATE/REPLACE blocks, including foundational theme, database, settings, voice, notification, model, and feature files.
+- The router references many screens whose complete source blocks were not materialized.
+- The extracted project therefore cannot be considered a complete Flutter application yet.
+
+Static dependency risks
+-----------------------
+- Missing local imports were detected by the static audit and must be resolved before compilation.
+- The requested dependency set includes native/platform packages, but there is no Flutter SDK or platform toolchain available for verification.
+- The supplied encryption implementation is described in its source as XOR/hash-based and is not AES-256; it must not be advertised as AES-256 without replacement by a vetted authenticated-encryption implementation.
+- The supplied backup password encryption is also XOR-based and must not be treated as secure encryption.
+- The supplied monetization section uses placeholder AdMob identifiers and requires store configuration; it was not materialized because it appears only as a proposal in pasted_content_10.txt.
+- Marketing claims such as AES-256, no tracking, and revenue projections require product/legal verification before publication.
+
+Commands attempted
+------------------
+- gh repo create nabd --private: initial syntax failed because gh accepts at most one positional argument with the selected flags; no repository was created by that failed command.
+- Corrected command succeeded: private repository toufikben/nabd was created.
+- Flutter command check: `flutter: command not found`, `dart: command not found`.
+
+Next required action
+--------------------
+Install/use a Flutter-enabled environment, normalize the three malformed extracted paths, add or explicitly approve the missing foundational files, then run pub get/analyze/test and platform builds. No claim of a successful Flutter build is made in this commit.
+
+Final static audit
+------------------
+- After adding the complete foundational files and extracting the complete home screen block, local Dart import resolution reports 0 missing local imports.
+- The malformed extracted filenames were normalized to `assets/icons/app_icon_fg.svg` and `assets/icons/mood_icons.svg`; the combined l10n instruction file was removed because the real `app_en.arb` and `app_ar.arb` files already exist.
+- JSON validation passed for both ARB files, and shell syntax validation passed for `scripts/convert_svg_to_png.sh`.
+- Ruby was unavailable, so Ruby-based YAML validation was skipped; Flutter validation remains unavailable for the same SDK reason.
+- This repository snapshot is therefore statically organized but not Flutter-build verified.
