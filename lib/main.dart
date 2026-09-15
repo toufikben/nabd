@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'app.dart';
@@ -21,6 +22,7 @@ Future<void> main() async {
   await NotificationService.init();
   await SettingsService.init();
   await EncryptionService().initialize();
+  await MobileAds.instance.initialize();
 
   final bio = BiometricService();
   await bio.updateLastActivity();

@@ -60,3 +60,11 @@ V2 correction pass — 2026-09-15
 - Flutter SDK is still unavailable; package resolution, Dart analyzer, generated localization, tests, and platform builds remain unverified.
 - Missing binary assets remain: `assets/icons/app_icon.png`, `assets/icons/app_icon_fg.png`, `assets/icons/splash.png`, and the sound files under `assets/sounds/`.
 - The v2 source text contains claims of completed security and monetization; these are treated as code-level implementation only until runtime, cryptographic, store, and policy tests pass.
+
+Final v2 static pass — 2026-09-15
+---------------------------------
+- Added `MobileAds.instance.initialize()` to `main.dart`.
+- Package-import audit found no undeclared package imports against `pubspec.yaml`.
+- Bash syntax checks pass for `scripts/setup_assets.sh` and `scripts/download_sounds.sh`.
+- Remaining blockers are environmental or release-level: no Flutter/Dart SDK, no generated PNG/audio assets, incomplete platform scaffolding, no real store products, no production AdMob IDs, and no runtime cryptographic or purchase tests.
+- The roadmap is now tracked in `ROADMAP.md` and must be updated with every subsequent change.
