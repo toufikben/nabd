@@ -3,7 +3,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../models/journal_entry.dart';
 import '../../../models/mood.dart';
 import '../../../services/database_service.dart';
 import '../../../services/local_ai_service.dart';

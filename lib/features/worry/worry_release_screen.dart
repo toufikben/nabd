@@ -5,7 +5,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
-import '../../services/database_service.dart';
 
 /// WorryReleaseScreen — اكتب همّك، أطلقه.
 ///
@@ -20,7 +19,6 @@ class WorryReleaseScreen extends StatefulWidget {
 
 class _WorryReleaseScreenState extends State<WorryReleaseScreen> {
   final TextEditingController _controller = TextEditingController();
-  final DatabaseService _db = DatabaseService();
 
   int _stage = 0; // 0: write, 1: releasing, 2: released
   bool _saveBeforeRelease = false;

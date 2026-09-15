@@ -3,7 +3,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/journal_entry.dart';
-import '../models/mood.dart';
 import '../models/seed.dart';
 import 'local_ai_service.dart';
 

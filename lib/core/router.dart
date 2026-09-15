@@ -12,7 +12,6 @@ import '../features/billing/paywall_screen.dart';
 import '../features/stats/stats_screen.dart';
 import '../features/stats/weather_screen.dart';
 import '../features/stats/heatmap_screen.dart';
-import '../features/stats/weather_screen.dart';
 import '../features/stats/advanced/word_cloud_screen.dart';
 import '../features/stats/advanced/emotion_radar_screen.dart';
 import '../features/stats/advanced/year_review_screen.dart';

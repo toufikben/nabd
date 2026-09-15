@@ -23,7 +23,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final allEntries = _db.getAllEntries();
     final selectedEntries = _selectedDay == null
         ? <JournalEntry>[]
         : _db.getEntriesForDate(_selectedDay!);

@@ -7,7 +7,6 @@ import '../../models/journal_entry.dart';
 import '../../models/mood.dart';
 import '../../services/database_service.dart';
 import '../../widgets/entry_card.dart';
-import '../../widgets/mood_picker.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});

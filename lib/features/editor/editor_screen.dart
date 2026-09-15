@@ -11,7 +11,6 @@ import '../../core/theme/app_colors.dart';
 import '../../models/journal_entry.dart';
 import '../../models/mood.dart';
 import '../../services/database_service.dart';
-import '../../services/settings_service.dart';
 import '../../services/voice_to_text_service.dart';
 import '../../widgets/mood_picker.dart';
 
