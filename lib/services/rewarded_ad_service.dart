@@ -77,9 +77,6 @@ class RewardedAdService {
         debugPrint('[RewardedAd] Show failed: ${error.message}');
         onFailed?.call();
       },
-      onAdImpression: () {
-        debugPrint('[RewardedAd] Impression recorded');
-      },
     );
 
     ad.show(onUserEarnedReward: (ad, reward) {

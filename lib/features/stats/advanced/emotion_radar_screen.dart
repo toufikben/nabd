@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../models/journal_entry.dart';
-import '../../../models/mood.dart';
 import '../../../services/database_service.dart';
 
 /// EmotionRadarScreen — رادار المشاعر (6 أبعاد).
@@ -21,15 +19,15 @@ class _EmotionRadarScreenState extends ConsumerState<EmotionRadarScreen> {
   final DatabaseService _db = DatabaseService();
   int _period = 30;
 
-  /// 6 أبعاد المشاعر.
-  static const _dimensions = [
-    ('Joy', 'joyful', 'happy', 'excited'),
-    ('Love', 'loved', 'in_love', 'grateful'),
-    ('Peace', 'peaceful', 'calm', 'hopeful'),
-    ('Sadness', 'sad', 'lonely', 'depressed'),
-    ('Anger', 'angry', 'frustrated'),
-    ('Anxiety', 'anxious', 'confused', 'tired'),
-  ];
+  /// 6 أبعاد — (label, [moodIds])
+  static const Map<String, List<String>> _dimensions = {
+    'Joy': ['joyful', 'happy', 'excited'],
+    'Love': ['loved', 'in_love', 'grateful'],
+    'Peace': ['peaceful', 'calm', 'hopeful'],
+    'Sadness': ['sad', 'lonely', 'depressed'],
+    'Anger': ['angry', 'frustrated'],
+    'Anxiety': ['anxious', 'confused', 'tired'],
+  };
 
   Map<String, double> get _scores {
     final entries = _db.getAllEntries();
@@ -38,14 +36,11 @@ class _EmotionRadarScreenState extends ConsumerState<EmotionRadarScreen> {
 
     final result = <String, double>{};
 
-    for (final dim in _dimensions) {
-      final label = dim.$1;
-      final moods = [dim.$2, dim.$3, dim.$4];
+    for (final entry in _dimensions.entries) {
+      final label = entry.key;
+      final moods = entry.value;
 
-      final count = recent
-          .where((e) => moods.contains(e.mood))
-          .length;
-
+      final count = recent.where((e) => moods.contains(e.mood)).length;
       final percent = recent.isEmpty ? 0.0 : count / recent.length;
       result[label] = percent;
     }
@@ -167,12 +162,12 @@ class _RadarPainter extends CustomPainter {
     final sides = scores.length;
     final labels = scores.keys.toList();
 
-    // Grid circles
     final gridPaint = Paint()
       ..color = AppColors.textTertiary.withValues(alpha: 0.2)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
 
+    // Grid
     for (var r = 1; r <= 4; r++) {
       final radius = maxRadius * r / 4;
       final path = Path();
@@ -190,7 +185,7 @@ class _RadarPainter extends CustomPainter {
       canvas.drawPath(path, gridPaint);
     }
 
-    // Axis lines
+    // Axis
     for (var i = 0; i < sides; i++) {
       final angle = (i / sides) * 2 * math.pi - math.pi / 2;
       final x = center.dx + maxRadius * math.cos(angle);
@@ -210,9 +205,9 @@ class _RadarPainter extends CustomPainter {
 
     for (var i = 0; i < sides; i++) {
       final value = scores[labels[i]] ?? 0;
-      final normalizedValue = math.min(value * 3, 1.0); // Scale up
+      final normalized = math.min(value * 3, 1.0);
       final angle = (i / sides) * 2 * math.pi - math.pi / 2;
-      final radius = maxRadius * normalizedValue;
+      final radius = maxRadius * normalized;
       final x = center.dx + radius * math.cos(angle);
       final y = center.dy + radius * math.sin(angle);
 

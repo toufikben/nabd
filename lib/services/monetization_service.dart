@@ -16,7 +16,7 @@ class MonetizationService extends StateNotifier<MonetizationState> {
     _init();
   }
 
-  static const _iap = InAppPurchase.instance;
+  static final _iap = InAppPurchase.instance;
 
   // ═══════════════════════════════════════════════════════════════
   // Product IDs — يجب إنشاؤها في Play Console و App Store

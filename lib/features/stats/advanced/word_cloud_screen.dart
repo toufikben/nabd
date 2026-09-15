@@ -19,17 +19,15 @@ class _WordCloudScreenState extends ConsumerState<WordCloudScreen> {
   int _period = 30; // days
 
   // Stop words to exclude
-  static const _stopWords = {
-    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
-    'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'been',
-    'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would',
-    'could', 'should', 'may', 'might', 'must', 'can', 'this', 'that',
-    'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they',
-    'me', 'him', 'her', 'us', 'them', 'my', 'your', 'his', 'her',
-    'our', 'their', 'mine', 'yours', 'hers', 'ours', 'theirs',
-    'في', 'من', 'إلى', 'على', 'عن', 'مع', 'أن', 'إن', 'كان', 'كانت',
-    'هو', 'هي', 'هم', 'نحن', 'أنا', 'أنت', 'هذا', 'هذه', 'ذلك', 'تلك',
-    'لم', 'لن', 'لا', 'ما', 'كل', 'بعض', 'كان', 'قد', 'ثم', 'أو', 'و',
+  static const Set<String> _stopWords = {
+    'the', 'and', 'for', 'with', 'this', 'that', 'from', 'have', 'has',
+    'are', 'was', 'were', 'been', 'be', 'is', 'it', 'its',
+    'you', 'your', 'they', 'them', 'their', 'his', 'her',
+    'she', 'he', 'we', 'our', 'us', 'me', 'my',
+    'في', 'من', 'على', 'عن', 'مع', 'إلى', 'أن', 'إن',
+    'كان', 'كانت', 'هو', 'هي', 'هم', 'نحن', 'أنا', 'أنت',
+    'هذا', 'هذه', 'ذلك', 'تلك', 'لم', 'لن', 'لا', 'ما',
+    'كل', 'بعض', 'قد', 'ثم', 'أو',
   };
 
   Map<String, int> get _wordFrequencies {

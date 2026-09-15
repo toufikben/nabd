@@ -10,6 +10,7 @@ import '../features/tags/tags_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/billing/paywall_screen.dart';
 import '../features/stats/stats_screen.dart';
+import '../features/stats/weather_screen.dart';
 import '../features/stats/heatmap_screen.dart';
 import '../features/stats/weather_screen.dart';
 import '../features/stats/advanced/word_cloud_screen.dart';
