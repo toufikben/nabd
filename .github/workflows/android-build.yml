@@ -42,6 +42,16 @@ jobs:
             flutter create --platforms=android --org com.productchat.studio .
           fi
 
+      - name: Align Android Gradle Plugin with androidx.webkit
+        shell: bash
+        run: |
+          for file in android/settings.gradle android/settings.gradle.kts; do
+            if [[ -f "$file" ]]; then
+              sed -i 's/com.android.application" version "8\.1\.0"/com.android.application" version "8.1.1"/g' "$file"
+              sed -i "s/com.android.application' version '8\.1\.0'/com.android.application' version '8.1.1'/g" "$file"
+            fi
+          done
+
       - name: Install dependencies
         run: flutter pub get
 
@@ -81,6 +91,16 @@ jobs:
           if [[ ! -f android/settings.gradle && ! -f android/settings.gradle.kts ]]; then
             flutter create --platforms=android --org com.productchat.studio .
           fi
+
+      - name: Align Android Gradle Plugin with androidx.webkit
+        shell: bash
+        run: |
+          for file in android/settings.gradle android/settings.gradle.kts; do
+            if [[ -f "$file" ]]; then
+              sed -i 's/com.android.application" version "8\.1\.0"/com.android.application" version "8.1.1"/g' "$file"
+              sed -i "s/com.android.application' version '8\.1\.0'/com.android.application' version '8.1.1'/g" "$file"
+            fi
+          done
 
       - name: Install dependencies
         run: flutter pub get

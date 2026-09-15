@@ -150,3 +150,9 @@ Android build dependency correction — 2026-09-15
 - Run `35010954907` passed `flutter analyze` and `flutter test`, then failed only during Debug APK compilation.
 - The failure was a package conflict: `record_linux-0.7.2` did not implement members required by `record_platform_interface-1.6.0` (`startStream` and the newer `hasPermission` signature).
 - Updated `record` from `^5.0.4` to `^6.1.0`, which is compatible with the current platform interface and retains the `AudioRecorder` API used by the editor.
+
+Android Gradle Plugin compatibility correction — 2026-09-15
+---------------------------------------------------------------
+- Run `35011798407` passed Analyze and Test but failed at `:app:checkDebugAarMetadata`.
+- `androidx.webkit:webkit:1.14.0` requires Android Gradle Plugin `8.1.1` or newer, while the workflow bootstrap generated AGP `8.1.0`.
+- Added a workflow step in both jobs to replace generated AGP `8.1.0` with `8.1.1` before dependency resolution and build.
