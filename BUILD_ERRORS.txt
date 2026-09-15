@@ -138,3 +138,9 @@ Analyzer cleanup pass — 2026-09-15
 - Removed the unnecessary `.toList()` from the spread in `lib/features/stats/stats_screen.dart`.
 - Updated `lib/services/voice_to_text_service.dart` to use `SpeechListenOptions(localeId: ...)`.
 - The next Actions run will verify the analyzer, tests, and APK/AAB build after these changes.
+
+Final analyzer compatibility correction — 2026-09-15
+------------------------------------------------------
+- Run `35010351947` reached only one error: `speech_to_text: ^7.0.0` does not define the `options` named parameter.
+- Restored the package-compatible `localeId` call and added a targeted `deprecated_member_use` suppression on that line. No other analyzer errors were reported in this run.
+- A new workflow run is required to verify tests and APK/AAB compilation.
