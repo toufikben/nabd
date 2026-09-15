@@ -51,6 +51,12 @@ jobs:
               sed -i "s/com.android.application' version '8\.1\.0'/com.android.application' version '8.1.1'/g" "$file"
             fi
           done
+          for file in android/app/build.gradle android/app/build.gradle.kts; do
+            if [[ -f "$file" ]]; then
+              sed -i 's/minSdk = flutter\.minSdkVersion/minSdk = 23/g' "$file"
+              sed -i 's/minSdkVersion flutter\.minSdkVersion/minSdkVersion 23/g' "$file"
+            fi
+          done
 
       - name: Install dependencies
         run: flutter pub get
@@ -99,6 +105,12 @@ jobs:
             if [[ -f "$file" ]]; then
               sed -i 's/com.android.application" version "8\.1\.0"/com.android.application" version "8.1.1"/g' "$file"
               sed -i "s/com.android.application' version '8\.1\.0'/com.android.application' version '8.1.1'/g" "$file"
+            fi
+          done
+          for file in android/app/build.gradle android/app/build.gradle.kts; do
+            if [[ -f "$file" ]]; then
+              sed -i 's/minSdk = flutter\.minSdkVersion/minSdk = 23/g' "$file"
+              sed -i 's/minSdkVersion flutter\.minSdkVersion/minSdkVersion 23/g' "$file"
             fi
           done
 

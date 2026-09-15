@@ -156,3 +156,8 @@ Android Gradle Plugin compatibility correction — 2026-09-15
 - Run `35011798407` passed Analyze and Test but failed at `:app:checkDebugAarMetadata`.
 - `androidx.webkit:webkit:1.14.0` requires Android Gradle Plugin `8.1.1` or newer, while the workflow bootstrap generated AGP `8.1.0`.
 - Added a workflow step in both jobs to replace generated AGP `8.1.0` with `8.1.1` before dependency resolution and build.
+
+Android minSdk compatibility correction — 2026-09-15
+-------------------------------------------------------
+- Run `35012574091` passed Analyze, Test, and AGP alignment, then failed during Manifest merge because `record_android` requires `minSdkVersion 23` while the generated project used 21.
+- Added a workflow step in both jobs to set generated `android/app/build.gradle` minSdk to 23. The unsupported `tools:overrideLibrary` workaround was intentionally not used.
