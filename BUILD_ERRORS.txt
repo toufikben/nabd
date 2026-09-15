@@ -99,3 +99,15 @@ V3 verification corrections — 2026-09-15
 - Safe downloader result remains 2/10 sounds; eight URLs return HTTP 403.
 - Remaining platform gaps are explicit: `@xml/shortcuts`, `@xml/file_paths`, and `@xml/widget_journal_info` are referenced but absent, and the Android/iOS scaffolds are incomplete.
 - The Test App IDs in native files are valid Google test values. Production App IDs cannot be generated locally and must be supplied through AdMob and inserted by a native/CI release step; dart-define alone does not rewrite native XML.
+
+V4 automation and remaining-gap fixes — 2026-09-15
+----------------------------------------------------
+- Added GitHub Actions workflow `.github/workflows/android-build.yml` for Flutter verify, Debug APK, and Debug AAB. It runs without signing or AdMob secrets and uploads both debug artifacts.
+- Added Android resources: `shortcuts.xml`, `file_paths.xml`, `widget_journal_info.xml`, `widget_journal.xml`, and `widget_journal_bg.xml`, plus widget strings.
+- Added `lib/core/app_settings.dart` and updated SplashScreen to skip unavailable sounds and fall back to `rain_soft`.
+- Replaced the sound downloader with Mixkit primary and Freesound fallback URLs, User-Agent, retries, MIME validation, and size validation.
+- Ran the new downloader successfully: 10/10 sound files are now present.
+- Added `docs/SOUNDS_MANUAL.md` and `docs/ANDROID_BUILD_WORKFLOW.md`.
+- Release APK/AAB signing remains intentionally disabled until keystore and GitHub Secrets are supplied. No secrets were added to the repository.
+- Local Flutter analyze/test/build remain unexecuted because Flutter is not installed in the sandbox; the first GitHub Actions run is the required verification point.
+- Production AdMob App IDs still need a native/CI replacement step; Dart `--dart-define` alone does not rewrite Manifest or Info.plist.

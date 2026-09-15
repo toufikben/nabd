@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../../core/app_settings.dart';
 import '../../services/splash_service.dart';
 
 /// SplashScreen — يعرض splash عشوائي من 5 (لا يكرر السابق).
@@ -31,9 +32,10 @@ class _SplashScreenState extends State<SplashScreen> {
     final soundEnabled =
         box.get('splash_sound_enabled', defaultValue: true) as bool;
     final customSound = box.get('splash_sound') as String?;
-    final sound = customSound ?? SplashService.defaultSoundFor(_splashId);
+    final requestedSound = customSound ?? SplashService.defaultSoundFor(_splashId);
+    final sound = AppSettings.fallbackSound(requestedSound);
 
-    if (soundEnabled) {
+    if (soundEnabled && AppSettings.splashSoundEnabled) {
       await _splash.playSplashSound(sound);
     }
 
