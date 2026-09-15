@@ -35,7 +35,7 @@ dependencies:
 
   # Media
   image_picker: ^1.1.2
-  record: ^5.0.4
+  record: ^6.1.0
   speech_to_text: ^7.0.0
   permission_handler: ^11.3.1
 

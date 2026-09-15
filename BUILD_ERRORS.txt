@@ -144,3 +144,9 @@ Final analyzer compatibility correction — 2026-09-15
 - Run `35010351947` reached only one error: `speech_to_text: ^7.0.0` does not define the `options` named parameter.
 - Restored the package-compatible `localeId` call and added a targeted `deprecated_member_use` suppression on that line. No other analyzer errors were reported in this run.
 - A new workflow run is required to verify tests and APK/AAB compilation.
+
+Android build dependency correction — 2026-09-15
+--------------------------------------------------
+- Run `35010954907` passed `flutter analyze` and `flutter test`, then failed only during Debug APK compilation.
+- The failure was a package conflict: `record_linux-0.7.2` did not implement members required by `record_platform_interface-1.6.0` (`startStream` and the newer `hasPermission` signature).
+- Updated `record` from `^5.0.4` to `^6.1.0`, which is compatible with the current platform interface and retains the `AudioRecorder` API used by the editor.
