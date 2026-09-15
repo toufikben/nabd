@@ -5,6 +5,7 @@ publish_to: 'none'
 
 environment:
   sdk: ">=3.6.0 <4.0.0"
+  flutter: ">=3.27.0"
 
 dependencies:
   flutter:
@@ -19,6 +20,11 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   flutter_secure_storage: ^9.2.2
+  path_provider: ^2.1.5
+  path: ^1.9.0
+
+  # Cryptography (AES-256-GCM)
+  cryptography: ^2.7.0
 
   # UI
   go_router: ^14.6.2
@@ -42,11 +48,16 @@ dependencies:
   local_auth: ^2.3.0
 
   # Files
-  path_provider: ^2.1.5
-  path: ^1.9.0
   share_plus: ^10.1.2
   file_picker: ^8.1.6
   archive: ^3.6.1
+
+  # Monetization
+  in_app_purchase: ^3.2.0
+  google_mobile_ads: ^5.1.0
+
+  # Sound
+  just_audio: ^0.9.36
 
   # Utils
   intl: ^0.19.0
@@ -67,9 +78,6 @@ flutter:
     - assets/icons/
     - assets/sounds/
 
-# ═══════════════════════════════════════════════════════════════
-# App Icon — نبض
-# ═══════════════════════════════════════════════════════════════
 flutter_launcher_icons:
   android: true
   ios: true
@@ -82,9 +90,6 @@ flutter_launcher_icons:
     background_color: "#0A0D14"
     theme_color: "#6C5CE7"
 
-# ═══════════════════════════════════════════════════════════════
-# Native Splash — نبض
-# ═══════════════════════════════════════════════════════════════
 flutter_native_splash:
   color: "#0A0D14"
   image: assets/icons/splash.png

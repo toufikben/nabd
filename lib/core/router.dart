@@ -1,118 +1,65 @@
 import 'package:go_router/go_router.dart';
 
-// Splash
 import '../features/splash/splash_screen.dart';
 import '../features/lock/lock_screen.dart';
-
-// Core
 import '../features/home/home_screen.dart';
 import '../features/editor/editor_screen.dart';
 import '../features/calendar/calendar_screen.dart';
 import '../features/search/search_screen.dart';
 import '../features/tags/tags_screen.dart';
 import '../features/settings/settings_screen.dart';
-
-// Stats
+import '../features/billing/paywall_screen.dart';
 import '../features/stats/stats_screen.dart';
 import '../features/stats/heatmap_screen.dart';
 import '../features/stats/weather_screen.dart';
 import '../features/stats/advanced/word_cloud_screen.dart';
 import '../features/stats/advanced/emotion_radar_screen.dart';
 import '../features/stats/advanced/year_review_screen.dart';
-
-// Garden
 import '../features/garden/garden_screen.dart';
 import '../features/garden/seed_selection_screen.dart';
-
-// Mind & Soul
 import '../features/worry/worry_box_screen.dart';
 import '../features/worry/worry_release_screen.dart';
 import '../features/breathing/breathing_screen.dart';
 import '../features/dream/dream_journal_screen.dart';
-
-// Gratitude
 import '../features/gratitude/gratitude_garden_screen.dart';
 import '../features/gratitude/gratitude_journal_screen.dart';
-
-// Future
 import '../features/future_self/future_letters_screen.dart';
-
-// Social (Local)
 import '../features/social/unsent_letters_screen.dart';
 import '../features/social/legacy_journal_screen.dart';
 import '../features/social/time_capsule_screen.dart';
-
-// Motivation
 import '../features/motivation/achievements_screen.dart';
 import '../features/motivation/challenges_screen.dart';
 
 final router = GoRouter(
   initialLocation: '/',
   routes: [
-    // ═══════════════════════════════════════════════════════
-    // Splash & Lock
-    // ═══════════════════════════════════════════════════════
     GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
     GoRoute(path: '/lock', builder: (_, __) => const LockScreen()),
-
-    // ═══════════════════════════════════════════════════════
-    // Core
-    // ═══════════════════════════════════════════════════════
     GoRoute(path: '/home', builder: (_, __) => const HomeScreen()),
-    GoRoute(
-      path: '/editor',
-      builder: (_, state) => EditorScreen(entryId: state.extra as String?),
-    ),
+    GoRoute(path: '/editor', builder: (_, state) => EditorScreen(entryId: state.extra as String?)),
     GoRoute(path: '/calendar', builder: (_, __) => const CalendarScreen()),
     GoRoute(path: '/search', builder: (_, __) => const SearchScreen()),
     GoRoute(path: '/tags', builder: (_, __) => const TagsScreen()),
     GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
-
-    // ═══════════════════════════════════════════════════════
-    // Stats
-    // ═══════════════════════════════════════════════════════
+    GoRoute(path: '/paywall', builder: (_, __) => const PaywallScreen()),
     GoRoute(path: '/stats', builder: (_, __) => const StatsScreen()),
     GoRoute(path: '/heatmap', builder: (_, __) => const HeatmapScreen()),
     GoRoute(path: '/weather', builder: (_, __) => const WeatherScreen()),
     GoRoute(path: '/word-cloud', builder: (_, __) => const WordCloudScreen()),
     GoRoute(path: '/emotion-radar', builder: (_, __) => const EmotionRadarScreen()),
     GoRoute(path: '/year-review', builder: (_, __) => const YearReviewScreen()),
-
-    // ═══════════════════════════════════════════════════════
-    // Garden
-    // ═══════════════════════════════════════════════════════
     GoRoute(path: '/garden', builder: (_, __) => const GardenScreen()),
     GoRoute(path: '/seed-selection', builder: (_, __) => const SeedSelectionScreen()),
-
-    // ═══════════════════════════════════════════════════════
-    // Mind & Soul
-    // ═══════════════════════════════════════════════════════
     GoRoute(path: '/worry-box', builder: (_, __) => const WorryBoxScreen()),
     GoRoute(path: '/worry-release', builder: (_, __) => const WorryReleaseScreen()),
     GoRoute(path: '/breathing', builder: (_, __) => const BreathingScreen()),
     GoRoute(path: '/dream-journal', builder: (_, __) => const DreamJournalScreen()),
-
-    // ═══════════════════════════════════════════════════════
-    // Gratitude
-    // ═══════════════════════════════════════════════════════
     GoRoute(path: '/gratitude-garden', builder: (_, __) => const GratitudeGardenScreen()),
     GoRoute(path: '/gratitude-journal', builder: (_, __) => const GratitudeJournalScreen()),
-
-    // ═══════════════════════════════════════════════════════
-    // Future
-    // ═══════════════════════════════════════════════════════
     GoRoute(path: '/future-letters', builder: (_, __) => const FutureLettersScreen()),
-
-    // ═══════════════════════════════════════════════════════
-    // Social (Local)
-    // ═══════════════════════════════════════════════════════
     GoRoute(path: '/unsent-letters', builder: (_, __) => const UnsentLettersScreen()),
     GoRoute(path: '/legacy-journal', builder: (_, __) => const LegacyJournalScreen()),
     GoRoute(path: '/time-capsule', builder: (_, __) => const TimeCapsuleScreen()),
-
-    // ═══════════════════════════════════════════════════════
-    // Motivation
-    // ═══════════════════════════════════════════════════════
     GoRoute(path: '/achievements', builder: (_, __) => const AchievementsScreen()),
     GoRoute(path: '/challenges', builder: (_, __) => const ChallengesScreen()),
   ],

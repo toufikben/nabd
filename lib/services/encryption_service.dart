@@ -1,121 +1,162 @@
 import 'dart:convert';
+import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:crypto/crypto.dart';
+import 'package:cryptography/cryptography.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// EncryptionService — تشفير محلي بـ AES-256 (عبر PBKDF2 + ChaCha20-like).
+/// EncryptionService — تشفير AES-256-GCM حقيقي مع مصادقة.
 ///
-/// ملاحظة: لتبسيط الاعتماديات، نستخدم:
-///   • SHA-256 لاشتقاق المفتاح
-///   • XOR stream cipher مبني على hash متعدد الجولات
-/// هذا آمن للاستخدام الشخصي، لكن للإنتاج المالي يُنصح بـ libsodium.
+/// الميزات:
+///   • AES-256-GCM (Authenticated Encryption)
+///   • Nonce عشوائي لكل عملية (12 bytes)
+///   • MAC مدمج (16 bytes) لمنع التلاعب
+///   • مفتاح محفوظ في Secure Storage (Keychain/Keystore)
+///
+/// Contract:
+///   • encrypt() → base64(nonce + ciphertext + mac)
+///   • decrypt() → plaintext (throws إذا فُشّل MAC)
 class EncryptionService {
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
   );
 
-  static const _keyAlias = 'journal_master_key';
-  static const _iterations = 10000;
+  static const _keyAlias = 'nabd_master_key_v1';
+  static const _iterations = 100000;
 
-  String? _cachedKey;
+  static final _algorithm = AesGcm.with256bits();
 
-  /// إنشاء مفتاح رئيسي جديد.
-  Future<String> generateMasterKey() async {
-    final key = _randomHex(32);
-    await _storage.write(key: _keyAlias, value: key);
-    _cachedKey = key;
-    return key;
+  SecretKey? _cachedKey;
+
+  /// تهيئة المفتاح — يُستدعى مرة واحدة عند بدء التطبيق.
+  Future<void> initialize() async {
+    final stored = await _storage.read(key: _keyAlias);
+    if (stored != null) {
+      try {
+        _cachedKey = SecretKey(base64Decode(stored));
+        return;
+      } catch (_) {
+        // مفتاح تالف → أنشئ جديد
+      }
+    }
+
+    // إنشاء مفتاح جديد
+    final newKey = await _algorithm.newSecretKey();
+    final bytes = await newKey.extractBytes();
+    await _storage.write(key: _keyAlias, value: base64Encode(bytes));
+    _cachedKey = newKey;
   }
 
-  /// الحصول على المفتاح الحالي.
-  Future<String?> getMasterKey() async {
-    if (_cachedKey != null) return _cachedKey;
-    _cachedKey = await _storage.read(key: _keyAlias);
-    return _cachedKey;
+  Future<SecretKey> _getKey() async {
+    if (_cachedKey != null) return _cachedKey!;
+    await initialize();
+    return _cachedKey!;
   }
 
-  /// تشفير نص.
+  /// تشفير نص بـ AES-256-GCM.
+  ///
+  /// التنسيق المُعاد:
+  ///   base64( nonce[12] || ciphertext || mac[16] )
   Future<String> encrypt(String plaintext) async {
-    final key = await getMasterKey();
-    if (key == null) return plaintext;
+    if (plaintext.isEmpty) return '';
 
-    final keyBytes = _deriveKey(key, _iterations);
-    final dataBytes = utf8.encode(plaintext);
+    final key = await _getKey();
+    final nonce = _algorithm.newNonce();
 
-    final encrypted = _xorCipher(dataBytes, keyBytes);
-    return base64Encode(encrypted);
+    final secretBox = await _algorithm.encrypt(
+      utf8.encode(plaintext),
+      secretKey: key,
+      nonce: nonce,
+    );
+
+    // Combine: nonce + ciphertext + mac
+    final combined = Uint8List.fromList([
+      ...secretBox.nonce,
+      ...secretBox.cipherText,
+      ...secretBox.mac.bytes,
+    ]);
+
+    return base64Encode(combined);
   }
 
   /// فك تشفير نص.
-  Future<String> decrypt(String ciphertext) async {
-    final key = await getMasterKey();
-    if (key == null) return ciphertext;
+  ///
+  /// يرمي `SecretBoxAuthenticationError` إذا تم التلاعب.
+  Future<String> decrypt(String encoded) async {
+    if (encoded.isEmpty) return '';
 
-    try {
-      final keyBytes = _deriveKey(key, _iterations);
-      final dataBytes = base64Decode(ciphertext);
-      final decrypted = _xorCipher(dataBytes, keyBytes);
-      return utf8.decode(decrypted);
-    } catch (_) {
-      return ciphertext;
+    final key = await _getKey();
+    final combined = base64Decode(encoded);
+
+    const nonceLength = 12; // AES-GCM standard
+    const macLength = 16; // AES-GCM standard
+
+    if (combined.length < nonceLength + macLength) {
+      throw const FormatException('Ciphertext too short');
     }
-  }
 
-  /// تغيير المفتاح الرئيسي (يُعاد تشفير كل الموجود).
-  Future<bool> changeMasterKey(String oldKey, String newKey) async {
-    final current = await getMasterKey();
-    if (current != oldKey) return false;
+    final nonce = combined.sublist(0, nonceLength);
+    final cipherText =
+        combined.sublist(nonceLength, combined.length - macLength);
+    final macBytes = combined.sublist(combined.length - macLength);
 
-    await _storage.write(key: _keyAlias, value: newKey);
-    _cachedKey = newKey;
-    return true;
-  }
+    final secretBox = SecretBox(
+      cipherText,
+      nonce: nonce,
+      mac: Mac(macBytes),
+    );
 
-  /// حذف المفتاح الرئيسي.
-  Future<void> deleteMasterKey() async {
-    await _storage.delete(key: _keyAlias);
-    _cachedKey = null;
+    final plaintext = await _algorithm.decrypt(
+      secretBox,
+      secretKey: key,
+    );
+
+    return utf8.decode(plaintext);
   }
 
   /// هل التشفير مُفعّل؟
   Future<bool> isEnabled() async {
-    return (await getMasterKey()) != null;
+    return await _storage.containsKey(key: _keyAlias);
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // Internal
-  // ═══════════════════════════════════════════════════════════
-
-  Uint8List _deriveKey(String key, int iterations) {
-    var hash = utf8.encode(key);
-    for (var i = 0; i < iterations; i++) {
-      hash = sha256.convert(hash).bytes;
-    }
-    return Uint8List.fromList(hash);
+  /// إعادة إنشاء المفتاح الرئيسي — **يُفقد كل البيانات المشفرة**.
+  Future<void> rotateKey() async {
+    await _storage.delete(key: _keyAlias);
+    _cachedKey = null;
+    await initialize();
   }
 
-  Uint8List _xorCipher(List<int> data, Uint8List key) {
-    final out = Uint8List(data.length);
-    final keyLen = key.length;
-
-    for (var i = 0; i < data.length; i++) {
-      // Round key generation per block
-      final blockKey = sha256.convert([
-        ...key,
-        (i ~/ keyLen) & 0xFF,
-        ((i ~/ keyLen) >> 8) & 0xFF,
-      ]).bytes;
-      out[i] = data[i] ^ blockKey[i % blockKey.length];
-    }
-
-    return out;
+  /// حذف المفتاح (عند حذف كل البيانات).
+  Future<void> deleteKey() async {
+    await _storage.delete(key: _keyAlias);
+    _cachedKey = null;
   }
 
-  String _randomHex(int length) {
-    const chars = '0123456789abcdef';
-    final now = DateTime.now().microsecondsSinceEpoch.toString();
-    final hash = sha256.convert(utf8.encode(now)).toString();
-    return hash.substring(0, length);
+  /// توليد مفتاح مشتق من كلمة مرور (PBKDF2).
+  ///
+  /// يُستخدم لتشفير النسخ الاحتياطي.
+  Future<SecretKey> deriveKeyFromPassword({
+    required String password,
+    required Uint8List salt,
+  }) async {
+    final pbkdf2 = Pbkdf2(
+      macAlgorithm: Hmac.sha256(),
+      iterations: _iterations,
+      bits: 256,
+    );
+
+    return await pbkdf2.deriveKey(
+      secretKey: SecretKey(utf8.encode(password)),
+      nonce: salt,
+    );
+  }
+
+  /// توليد salt عشوائي.
+  Uint8List generateSalt([int length = 16]) {
+    final random = Random.secure();
+    return Uint8List.fromList(
+      List<int>.generate(length, (_) => random.nextInt(256)),
+    );
   }
 }

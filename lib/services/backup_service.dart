@@ -1,88 +1,137 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
+import 'package:cryptography/cryptography.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-/// BackupService — نسخ احتياطي محلي + تصدير/استيراد.
+import 'encryption_service.dart';
+
+/// BackupService — نسخ احتياطي محلي مع تشفير AES-256-GCM حقيقي.
+///
+/// التنسيق:
+///   • بدون كلمة مرور → ZIP عادي
+///   • مع كلمة مرور → ZIP + AES-256-GCM
+///
+/// البنية داخل ZIP:
+///   entries.json     — المذكرات
+///   settings.json    — الإعدادات
+///   garden.json      — الحديقة
+///   achievements.json — الإنجازات
+///   metadata.json    — معلومات الإصدار
+///   images/          — الصور
+///   audio/           — التسجيلات
 class BackupService {
-  /// تصدير كل البيانات كـ ZIP.
-  Future<File> createBackup({String? password}) async {
+  final _encryption = EncryptionService();
+
+  /// إنشاء نسخة احتياطية.
+  Future<File> createBackup({
+    String? password,
+    void Function(double progress)? onProgress,
+  }) async {
     final docs = await getApplicationDocumentsDirectory();
     final tempDir = await getTemporaryDirectory();
     final archive = Archive();
 
-    // ─── 1. Journal entries ───
+    var step = 0;
+    const totalSteps = 6;
+
+    void reportProgress() {
+      step++;
+      onProgress?.call(step / totalSteps);
+    }
+
+    // 1. Journal entries
     final entriesBox = Hive.box('journal_entries');
     final entriesJson = entriesBox.values.toList();
-    final entriesBytes = utf8.encode(jsonEncode(entriesJson));
-    archive.addFile(ArchiveFile('entries.json', entriesBytes.length, entriesBytes));
+    _addJson(archive, 'entries.json', entriesJson);
+    reportProgress();
 
-    // ─── 2. Settings ───
+    // 2. Settings
     final settingsBox = Hive.box('settings');
-    final settingsJson = Map<String, dynamic>.fromEntries(
-      settingsBox.keys.map((k) => MapEntry(k.toString(), settingsBox.get(k))),
-    );
-    final settingsBytes = utf8.encode(jsonEncode(settingsJson));
-    archive.addFile(ArchiveFile('settings.json', settingsBytes.length, settingsBytes));
-
-    // ─── 3. Images ───
-    final imagesDir = Directory('${docs.path}/images');
-    if (await imagesDir.exists()) {
-      for (final file in imagesDir.listSync()) {
-        if (file is File) {
-          final name = p.basename(file.path);
-          final bytes = await file.readAsBytes();
-          archive.addFile(ArchiveFile('images/$name', bytes.length, bytes));
-        }
-      }
+    final settingsJson = <String, dynamic>{};
+    for (final key in settingsBox.keys) {
+      settingsJson[key.toString()] = settingsBox.get(key);
     }
+    _addJson(archive, 'settings.json', settingsJson);
+    reportProgress();
 
-    // ─── 4. Audio ───
-    final audioDir = Directory('${docs.path}/audio');
-    if (await audioDir.exists()) {
-      for (final file in audioDir.listSync()) {
-        if (file is File) {
-          final name = p.basename(file.path);
-          final bytes = await file.readAsBytes();
-          archive.addFile(ArchiveFile('audio/$name', bytes.length, bytes));
-        }
-      }
+    // 3. Garden
+    final gardenBox = Hive.box('garden');
+    final gardenJson = <String, dynamic>{};
+    for (final key in gardenBox.keys) {
+      gardenJson[key.toString()] = gardenBox.get(key);
     }
+    _addJson(archive, 'garden.json', gardenJson);
+    reportProgress();
 
-    // ─── 5. Metadata ───
-    final meta = {
-      'version': 1,
-      'exportedAt': DateTime.now().toIso8601String(),
-      'entryCount': entriesBox.length,
+    // 4. Achievements + Challenges
+    final achievementsJson = <String, dynamic>{
+      'unlocked': settingsBox.get('unlocked_achievements', defaultValue: []),
+      'joined_challenges': settingsBox.get('joined_challenges', defaultValue: []),
+      'legacy_entries': settingsBox.get('legacy_entries', defaultValue: []),
+      'unsent_letters': settingsBox.get('unsent_letters', defaultValue: []),
+      'time_capsules': settingsBox.get('time_capsules', defaultValue: []),
+      'gratitude_items': settingsBox.get('gratitude_items', defaultValue: []),
+      'future_letters': settingsBox.get('future_letters', defaultValue: []),
+      'worry_box': settingsBox.get('worry_box', defaultValue: []),
     };
-    final metaBytes = utf8.encode(jsonEncode(meta));
-    archive.addFile(ArchiveFile('metadata.json', metaBytes.length, metaBytes));
+    _addJson(archive, 'achievements.json', achievementsJson);
+    reportProgress();
 
-    // ─── 6. Encode ZIP ───
-    var zipBytes = ZipEncoder().encode(archive);
+    // 5. Media files
+    for (final dirName in ['images', 'audio']) {
+      final dir = Directory('${docs.path}/$dirName');
+      if (await dir.exists()) {
+        await for (final entity in dir.list()) {
+          if (entity is File) {
+            final name = p.basename(entity.path);
+            final bytes = await entity.readAsBytes();
+            archive.addFile(
+              ArchiveFile('$dirName/$name', bytes.length, bytes),
+            );
+          }
+        }
+      }
+    }
+    reportProgress();
+
+    // 6. Metadata
+    final metadata = {
+      'version': 2,
+      'app': 'nabd',
+      'exportedAt': DateTime.now().toIso8601String(),
+      'encrypted': password != null && password.isNotEmpty,
+      'entryCount': entriesBox.length,
+      'gardenCount': gardenBox.length,
+    };
+    _addJson(archive, 'metadata.json', metadata);
+    reportProgress();
+
+    // 7. Encode ZIP
+    final zipBytes = ZipEncoder().encode(archive);
     if (zipBytes == null) {
-      throw Exception('Failed to create ZIP');
+      throw Exception('Failed to encode ZIP');
     }
 
-    // ─── 7. Encrypt if password provided ───
-    if (password != null && password.isNotEmpty) {
-      // Simple XOR-based encryption for the ZIP
-      zipBytes = _simpleEncrypt(zipBytes, password);
-    }
+    // 8. Encrypt if password provided (using real AES-256-GCM)
+    final outputBytes = (password != null && password.isNotEmpty)
+        ? await _encryptZip(Uint8List.fromList(zipBytes), password)
+        : Uint8List.fromList(zipBytes);
 
-    // ─── 8. Save ───
-    final filename =
-        'journal_backup_${DateTime.now().millisecondsSinceEpoch}.${password != null ? 'enc' : 'zip'}';
+    // 9. Save
+    final extension = (password != null && password.isNotEmpty) ? 'nabd' : 'zip';
+    final filename = 'nabd_backup_${DateTime.now().millisecondsSinceEpoch}.$extension';
     final backupFile = File('${tempDir.path}/$filename');
-    await backupFile.writeAsBytes(zipBytes);
+    await backupFile.writeAsBytes(outputBytes);
 
     return backupFile;
   }
 
-  /// استيراد من ملف ZIP.
+  /// استيراد نسخة احتياطية.
   Future<ImportResult> restoreBackup(
     String backupPath, {
     String? password,
@@ -90,11 +139,19 @@ class BackupService {
     try {
       var bytes = await File(backupPath).readAsBytes();
 
-      // Decrypt if needed
+      // 1. Decrypt if needed
       if (password != null && password.isNotEmpty) {
-        bytes = _simpleEncrypt(bytes, password); // XOR is symmetric
+        try {
+          bytes = await _decryptZip(Uint8List.fromList(bytes), password);
+        } catch (e) {
+          return ImportResult(
+            ok: false,
+            error: 'فشل فك التشفير: كلمة المرور خاطئة أو الملف تالف',
+          );
+        }
       }
 
+      // 2. Decode ZIP
       final archive = ZipDecoder().decodeBytes(bytes);
 
       var imported = 0;
@@ -103,13 +160,13 @@ class BackupService {
 
       final docs = await getApplicationDocumentsDirectory();
 
+      // 3. Restore files
       for (final file in archive) {
         if (!file.isFile) continue;
 
         final name = file.name;
         final content = file.content as List<int>;
 
-        // ─── Entries ───
         if (name == 'entries.json') {
           final entries = jsonDecode(utf8.decode(content)) as List;
           final box = Hive.box('journal_entries');
@@ -121,19 +178,25 @@ class BackupService {
               imported++;
             }
           }
-        }
-
-        // ─── Settings ───
-        else if (name == 'settings.json') {
+        } else if (name == 'settings.json') {
           final settings = jsonDecode(utf8.decode(content)) as Map;
           final box = Hive.box('settings');
           for (final e in settings.entries) {
             await box.put(e.key.toString(), e.value);
           }
-        }
-
-        // ─── Images ───
-        else if (name.startsWith('images/')) {
+        } else if (name == 'garden.json') {
+          final garden = jsonDecode(utf8.decode(content)) as Map;
+          final box = Hive.box('garden');
+          for (final e in garden.entries) {
+            await box.put(e.key.toString(), e.value);
+          }
+        } else if (name == 'achievements.json') {
+          final data = jsonDecode(utf8.decode(content)) as Map;
+          final box = Hive.box('settings');
+          for (final e in data.entries) {
+            await box.put(e.key.toString(), e.value);
+          }
+        } else if (name.startsWith('images/')) {
           final filename = name.substring(7);
           final imagesDir = Directory('${docs.path}/images');
           if (!await imagesDir.exists()) {
@@ -141,10 +204,7 @@ class BackupService {
           }
           await File('${imagesDir.path}/$filename').writeAsBytes(content);
           imagesRestored++;
-        }
-
-        // ─── Audio ───
-        else if (name.startsWith('audio/')) {
+        } else if (name.startsWith('audio/')) {
           final filename = name.substring(6);
           final audioDir = Directory('${docs.path}/audio');
           if (!await audioDir.exists()) {
@@ -166,19 +226,88 @@ class BackupService {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // Simple symmetric encryption
-  // ═══════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════
+  // Internal — AES-256-GCM for ZIP files
+  // ═══════════════════════════════════════════════════════════════
 
-  List<int> _simpleEncrypt(List<int> data, String password) {
-    final key = utf8.encode(password);
-    final out = List<int>.filled(data.length, 0);
+  /// تشفير ZIP بـ AES-256-GCM باستخدام مفتاح مشتق من كلمة المرور.
+  ///
+  /// التنسيق:
+  ///   [salt:16][nonce:12][ciphertext...][mac:16]
+  Future<Uint8List> _encryptZip(Uint8List zipBytes, String password) async {
+    final algorithm = AesGcm.with256bits();
 
-    for (var i = 0; i < data.length; i++) {
-      out[i] = data[i] ^ key[i % key.length];
+    // 1. Generate salt
+    final salt = _encryption.generateSalt(16);
+
+    // 2. Derive key from password
+    final key = await _encryption.deriveKeyFromPassword(
+      password: password,
+      salt: salt,
+    );
+
+    // 3. Encrypt
+    final nonce = algorithm.newNonce();
+    final secretBox = await algorithm.encrypt(
+      zipBytes,
+      secretKey: key,
+      nonce: nonce,
+    );
+
+    // 4. Combine: salt + nonce + ciphertext + mac
+    return Uint8List.fromList([
+      ...salt,
+      ...secretBox.nonce,
+      ...secretBox.cipherText,
+      ...secretBox.mac.bytes,
+    ]);
+  }
+
+  /// فك تشفير ZIP.
+  Future<Uint8List> _decryptZip(Uint8List encrypted, String password) async {
+    final algorithm = AesGcm.with256bits();
+
+    const saltLength = 16;
+    const nonceLength = 12;
+    const macLength = 16;
+
+    if (encrypted.length < saltLength + nonceLength + macLength) {
+      throw const FormatException('Encrypted backup too short');
     }
 
-    return out;
+    // 1. Extract parts
+    final salt = encrypted.sublist(0, saltLength);
+    final nonce = encrypted.sublist(saltLength, saltLength + nonceLength);
+    final macBytes = encrypted.sublist(encrypted.length - macLength);
+    final cipherText = encrypted.sublist(
+      saltLength + nonceLength,
+      encrypted.length - macLength,
+    );
+
+    // 2. Derive key
+    final key = await _encryption.deriveKeyFromPassword(
+      password: password,
+      salt: salt,
+    );
+
+    // 3. Decrypt (throws if MAC verification fails)
+    final secretBox = SecretBox(
+      cipherText,
+      nonce: nonce,
+      mac: Mac(macBytes),
+    );
+
+    final plaintext = await algorithm.decrypt(
+      secretBox,
+      secretKey: key,
+    );
+
+    return Uint8List.fromList(plaintext);
+  }
+
+  void _addJson(Archive archive, String name, dynamic data) {
+    final bytes = utf8.encode(jsonEncode(data));
+    archive.addFile(ArchiveFile(name, bytes.length, bytes));
   }
 }
 

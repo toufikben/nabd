@@ -49,3 +49,14 @@ Final static audit
 - JSON validation passed for both ARB files, and shell syntax validation passed for `scripts/convert_svg_to_png.sh`.
 - Ruby was unavailable, so Ruby-based YAML validation was skipped; Flutter validation remains unavailable for the same SDK reason.
 - This repository snapshot is therefore statically organized but not Flutter-build verified.
+
+V2 correction pass — 2026-09-15
+--------------------------------
+- Applied complete v2 blocks for AES-256-GCM encryption, encrypted backups, monetization, rewarded ads, Paywall, pubspec, l10n, asset setup, sound download, MODIFY checklist, and v2 report.
+- Fixed an extraction/API mismatch in `lib/main.dart`: the old `generateMasterKey()` call was replaced with `EncryptionService().initialize()`.
+- Added the missing `/paywall` route and the missing `AppColors.border` and `AppColors.surfaceAlt` constants.
+- Static local-import audit remains at 0 missing local imports.
+- Shell syntax checks pass for both new asset scripts.
+- Flutter SDK is still unavailable; package resolution, Dart analyzer, generated localization, tests, and platform builds remain unverified.
+- Missing binary assets remain: `assets/icons/app_icon.png`, `assets/icons/app_icon_fg.png`, `assets/icons/splash.png`, and the sound files under `assets/sounds/`.
+- The v2 source text contains claims of completed security and monetization; these are treated as code-level implementation only until runtime, cryptographic, store, and policy tests pass.
