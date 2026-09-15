@@ -11,6 +11,9 @@ import '../../core/theme/app_colors.dart';
 import '../../models/journal_entry.dart';
 import '../../models/mood.dart';
 import '../../services/database_service.dart';
+import '../../services/garden_service.dart';
+import '../../services/motivation_service.dart';
+import '../../services/monetization_service.dart';
 import '../../services/voice_to_text_service.dart';
 import '../../widgets/mood_picker.dart';
 
@@ -81,6 +84,14 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       return;
     }
 
+    final monetization = ref.read(monetizationProvider.notifier);
+    if (_existing == null &&
+        !monetization.isProActive &&
+        !_db.canCreateFreeEntry()) {
+      if (mounted) context.push('/paywall');
+      return;
+    }
+
     setState(() => _isSaving = true);
 
     try {
@@ -109,7 +120,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       if (_existing != null) {
         await _db.updateEntry(entry);
       } else {
-        await _db.addEntry(entry);
+        await _db.addEntry(entry,
+            isPro: ref.read(monetizationProvider.notifier).isProActive);
+        await _processPostSave(entry);
       }
 
       if (mounted) {
@@ -127,6 +140,61 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
+  }
+
+  Future<void> _processPostSave(JournalEntry entry) async {
+    try {
+      await ref.read(gardenProvider.notifier).water(entry);
+    } catch (error) {
+      debugPrint('Garden update failed after journal save: $error');
+    }
+
+    try {
+      final entries = _db.getAllEntries();
+      final dates = entries
+          .map((item) => DateTime(
+              item.createdAt.year, item.createdAt.month, item.createdAt.day))
+          .toSet();
+      var streak = 0;
+      var day = DateTime.now();
+      while (dates.contains(DateTime(day.year, day.month, day.day))) {
+        streak++;
+        day = day.subtract(const Duration(days: 1));
+      }
+      final service = AchievementService();
+      final newAchievements = service.checkNew(
+        entries: entries.length,
+        streak: streak,
+        words: _db.getWordCount(),
+        moods: entries
+            .map((item) => item.mood)
+            .where((mood) => mood.isNotEmpty)
+            .toSet()
+            .length,
+        gratitudeDays: 0,
+      );
+      for (final achievement in newAchievements) {
+        await service.unlock(achievement);
+      }
+    } catch (error) {
+      debugPrint('Achievement evaluation failed after journal save: $error');
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    final entry = _existing;
+    if (entry == null) return;
+    final updated = entry.copyWith(isFavorite: !entry.isFavorite);
+    await _db.updateEntry(updated);
+    if (mounted) setState(() => _existing = updated);
+  }
+
+  Future<void> _togglePinned() async {
+    final entry = _existing;
+    if (entry == null) return;
+    final updated = entry.copyWith(isPinned: !entry.isPinned);
+    await _db.updateEntry(updated);
+    if (mounted) setState(() => _existing = updated);
   }
 
   Future<void> _pickImages() async {
@@ -249,6 +317,23 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       appBar: AppBar(
         title: Text(_existing == null ? 'New Entry' : 'Edit Entry'),
         actions: [
+          if (_existing != null)
+            IconButton(
+              tooltip:
+                  _existing!.isFavorite ? 'Remove favorite' : 'Add favorite',
+              icon: Icon(_existing!.isFavorite
+                  ? Icons.favorite
+                  : Icons.favorite_border),
+              onPressed: _toggleFavorite,
+            ),
+          if (_existing != null)
+            IconButton(
+              tooltip: _existing!.isPinned ? 'Unpin' : 'Pin',
+              icon: Icon(_existing!.isPinned
+                  ? Icons.push_pin
+                  : Icons.push_pin_outlined),
+              onPressed: _togglePinned,
+            ),
           if (_existing != null)
             IconButton(
               icon: const Icon(Icons.delete_outline, color: AppColors.danger),

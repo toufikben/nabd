@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 import '../features/splash/splash_screen.dart';
 import '../features/lock/lock_screen.dart';
@@ -42,8 +43,29 @@ final router = GoRouter(
   initialLocation: '/',
   redirect: (_, state) {
     final location = state.uri.path;
-    final exempt =
-        location == '/' || location == '/lock' || location == '/seed-selection';
+    final externalHost = state.uri.host;
+    final externalRoute = switch (externalHost) {
+      'editor' => '/editor',
+      'garden' => '/garden',
+      'calendar' => '/calendar',
+      'stats' => '/stats',
+      _ => null,
+    };
+    if (externalRoute != null) return externalRoute;
+    if (state.uri.host == 'nabd.app') {
+      final webRoute = switch (location) {
+        '/journal' => '/editor',
+        '/garden' => '/garden',
+        _ => null,
+      };
+      if (webRoute != null) return webRoute;
+    }
+    final onboardingComplete =
+        Hive.box('settings').get('onboarding_completed', defaultValue: false) ==
+            true;
+    final exempt = location == '/' ||
+        location == '/lock' ||
+        (location == '/seed-selection' && !onboardingComplete);
     if (!exempt && BiometricService().shouldShowLock()) return '/lock';
     return null;
   },

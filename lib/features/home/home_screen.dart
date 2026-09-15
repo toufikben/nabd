@@ -28,6 +28,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       appBar: AppBar(
         title: const Text('My Journal'),
         actions: [
+          PopupMenuButton<String>(
+            tooltip: 'Explore features',
+            onSelected: (route) => context.push(route),
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: '/search', child: Text('Search')),
+              PopupMenuItem(value: '/tags', child: Text('Tags')),
+              PopupMenuItem(value: '/stats', child: Text('Statistics')),
+              PopupMenuItem(value: '/heatmap', child: Text('Heatmap')),
+              PopupMenuItem(value: '/weather', child: Text('Mood weather')),
+              PopupMenuItem(value: '/word-cloud', child: Text('Word cloud')),
+              PopupMenuItem(
+                  value: '/emotion-radar', child: Text('Emotion radar')),
+              PopupMenuItem(value: '/year-review', child: Text('Year review')),
+              PopupMenuItem(value: '/garden', child: Text('Garden')),
+              PopupMenuItem(value: '/worry-box', child: Text('Worry box')),
+              PopupMenuItem(
+                  value: '/worry-release', child: Text('Worry release')),
+              PopupMenuItem(value: '/breathing', child: Text('Breathing')),
+              PopupMenuItem(
+                  value: '/dream-journal', child: Text('Dream journal')),
+              PopupMenuItem(
+                  value: '/gratitude-garden', child: Text('Gratitude garden')),
+              PopupMenuItem(
+                  value: '/gratitude-journal',
+                  child: Text('Gratitude journal')),
+              PopupMenuItem(
+                  value: '/future-letters', child: Text('Future letters')),
+              PopupMenuItem(
+                  value: '/unsent-letters', child: Text('Unsent letters')),
+              PopupMenuItem(
+                  value: '/legacy-journal', child: Text('Legacy journal')),
+              PopupMenuItem(
+                  value: '/time-capsule', child: Text('Time capsule')),
+              PopupMenuItem(
+                  value: '/achievements', child: Text('Achievements')),
+              PopupMenuItem(value: '/challenges', child: Text('Challenges')),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.calendar_today_outlined),
             onPressed: () => context.push('/calendar'),
@@ -57,7 +95,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               onChanged: (v) => setState(() => _searchQuery = v),
             ),
           ),
-          
+
           // Mood Filter
           SizedBox(
             height: 50,
@@ -88,7 +126,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               },
             ),
           ),
-          
+
           // Stats Row
           Padding(
             padding: const EdgeInsets.all(16),
@@ -98,11 +136,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 const SizedBox(width: 12),
                 _statCard(Icons.text_fields, '${_db.getWordCount()}', 'Words'),
                 const SizedBox(width: 12),
-                _statCard(Icons.local_fire_department, '${_calculateStreak()}', 'Streak'),
+                _statCard(Icons.local_fire_department, '${_calculateStreak()}',
+                    'Streak'),
               ],
             ),
           ),
-          
+
           // Entries List
           Expanded(
             child: filtered.isEmpty
@@ -110,11 +149,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.book_outlined, size: 80, color: AppColors.textSecondary.withValues(alpha: 0.3)),
+                        Icon(Icons.book_outlined,
+                            size: 80,
+                            color:
+                                AppColors.textSecondary.withValues(alpha: 0.3)),
                         const SizedBox(height: 16),
-                        Text('No entries yet', style: Theme.of(context).textTheme.titleLarge),
+                        Text('No entries yet',
+                            style: Theme.of(context).textTheme.titleLarge),
                         const SizedBox(height: 8),
-                        Text('Tap + to write your first entry', style: TextStyle(color: AppColors.textSecondary)),
+                        Text('Tap + to write your first entry',
+                            style: TextStyle(color: AppColors.textSecondary)),
                       ],
                     ),
                   )
@@ -123,7 +167,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     itemCount: filtered.length,
                     itemBuilder: (_, i) => EntryCard(
                       entry: filtered[i],
-                      onTap: () => context.push('/editor', extra: filtered[i].id),
+                      onTap: () =>
+                          context.push('/editor', extra: filtered[i].id),
                     ),
                   ),
           ),
@@ -140,10 +185,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   List<JournalEntry> _filterEntries(List<JournalEntry> entries) {
     var result = entries;
     if (_searchQuery.isNotEmpty) {
-      result = result.where((e) =>
-        e.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-        e.content.toLowerCase().contains(_searchQuery.toLowerCase())
-      ).toList();
+      result = result
+          .where((e) =>
+              e.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+              e.content.toLowerCase().contains(_searchQuery.toLowerCase()))
+          .toList();
     }
     if (_selectedMood != null) {
       result = result.where((e) => e.mood == _selectedMood).toList();
@@ -154,8 +200,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _calculateStreak() {
     final entries = _db.getAllEntries();
     if (entries.isEmpty) return 0;
-    
-    final dates = entries.map((e) => DateTime(e.createdAt.year, e.createdAt.month, e.createdAt.day)).toSet();
+
+    final dates = entries
+        .map((e) =>
+            DateTime(e.createdAt.year, e.createdAt.month, e.createdAt.day))
+        .toSet();
     var streak = 0;
     var date = DateTime.now();
     while (dates.contains(DateTime(date.year, date.month, date.day))) {
@@ -172,14 +221,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)
+          ],
         ),
         child: Column(
           children: [
             Icon(icon, size: 20, color: AppColors.primary),
             const SizedBox(height: 4),
-            Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            Text(label, style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+            Text(value,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(label,
+                style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
           ],
         ),
       ),

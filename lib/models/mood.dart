@@ -65,7 +65,7 @@ class Mood {
         color: Color(0xFFD50000), value: 2, category: 'negative'),
     Mood(id: 'frustrated', emoji: '😤', labelEn: 'Frustrated', labelAr: 'محبط',
         color: Color(0xFFFF6D00), value: 3, category: 'negative'),
-    Mood(id: 'depressed', emoji: '😭', labelEn: 'Depressed', labelAr: 'مكتئب',
+    Mood(id: 'depressed', emoji: '😭', labelEn: 'Low mood indicators', labelAr: 'مؤشرات مزاج منخفض',
         color: Color(0xFF311B92), value: 1, category: 'negative'),
   ];
 

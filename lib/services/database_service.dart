@@ -8,8 +8,13 @@ import '../models/tag.dart';
 class DatabaseService {
   Box get entriesBox => Hive.box('journal_entries');
   Box get tagsBox => Hive.box('tags');
-  Future<void> addEntry(JournalEntry entry) =>
-      entriesBox.put(entry.id, entry.toMap());
+  Future<void> addEntry(JournalEntry entry, {bool isPro = false}) async {
+    if (!isPro && !canCreateFreeEntry()) {
+      throw const EntryLimitExceededException();
+    }
+    await entriesBox.put(entry.id, entry.toMap());
+  }
+
   Future<void> updateEntry(JournalEntry entry) async {
     final raw = entriesBox.get(entry.id);
     await entriesBox.put(entry.id, entry.toMap());
@@ -72,6 +77,18 @@ class DatabaseService {
   List<JournalEntry> getFavoriteEntries() =>
       getAllEntries().where((e) => e.isFavorite).toList();
   int getEntryCount() => entriesBox.length;
+
+  int getCurrentMonthEntryCount([DateTime? now]) {
+    final date = now ?? DateTime.now();
+    return getAllEntries()
+        .where((entry) =>
+            entry.createdAt.year == date.year &&
+            entry.createdAt.month == date.month)
+        .length;
+  }
+
+  bool canCreateFreeEntry({DateTime? now, int limit = 7}) =>
+      getCurrentMonthEntryCount(now) < limit;
   int getWordCount() => getAllEntries().fold(
       0,
       (sum, e) =>
@@ -85,6 +102,17 @@ class DatabaseService {
         'color': tag.color,
         'usageCount': tag.usageCount
       });
+
+  Future<void> deleteTag(String tagName, String tagId) async {
+    await tagsBox.delete(tagId);
+    for (final entry in getAllEntries()) {
+      if (!entry.tags.contains(tagName)) continue;
+      await updateEntry(entry.copyWith(
+        tags: entry.tags.where((tag) => tag != tagName).toList(),
+      ));
+    }
+  }
+
   List<Tag> getAllTags() => tagsBox.isEmpty
       ? Tag.defaultTags
       : tagsBox.values.map((e) {
@@ -111,4 +139,11 @@ class DatabaseService {
     }
     return out;
   }
+}
+
+class EntryLimitExceededException implements Exception {
+  const EntryLimitExceededException();
+
+  @override
+  String toString() => 'Monthly free entry limit reached';
 }

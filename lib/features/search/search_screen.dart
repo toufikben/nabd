@@ -41,7 +41,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           onChanged: (v) => setState(() => _query = v),
         ),
         actions: [
-          if (_query.isNotEmpty || _selectedMood != null || _selectedTags.isNotEmpty)
+          if (_query.isNotEmpty ||
+              _selectedMood != null ||
+              _selectedTags.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.clear),
               onPressed: _clearFilters,
@@ -67,14 +69,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             _filterChip(
                               label: 'All',
                               selected: _selectedMood == null,
-                              onTap: () =>
-                                  setState(() => _selectedMood = null),
+                              onTap: () => setState(() => _selectedMood = null),
                             ),
                             ...Mood.all.map((m) => _filterChip(
                                   label: m.emoji,
                                   selected: _selectedMood == m.id,
-                                  onTap: () => setState(
-                                      () => _selectedMood = m.id),
+                                  onTap: () =>
+                                      setState(() => _selectedMood = m.id),
                                 )),
                           ],
                         ),
@@ -83,14 +84,40 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   ],
                 ),
                 const SizedBox(height: 8),
+                if (_db.getAllTags().isNotEmpty)
+                  SizedBox(
+                    height: 38,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: _db.getAllTags().map((tag) {
+                        final selected = _selectedTags.contains(tag.name);
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: FilterChip(
+                            label: Text('#${tag.name}'),
+                            selected: selected,
+                            onSelected: (value) => setState(() {
+                              if (value) {
+                                _selectedTags = [..._selectedTags, tag.name];
+                              } else {
+                                _selectedTags = _selectedTags
+                                    .where((item) => item != tag.name)
+                                    .toList();
+                              }
+                            }),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                const SizedBox(height: 8),
                 // Sort + Favorites
                 Row(
                   children: [
                     ChoiceChip(
                       label: const Icon(Icons.favorite, size: 16),
                       selected: _favoritesOnly,
-                      onSelected: (v) =>
-                          setState(() => _favoritesOnly = v),
+                      onSelected: (v) => setState(() => _favoritesOnly = v),
                     ),
                     const SizedBox(width: 8),
                     const Spacer(),
@@ -104,11 +131,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             value: 'oldest', child: Text('Oldest')),
                         DropdownMenuItem(
                             value: 'longest', child: Text('Longest')),
-                        DropdownMenuItem(
-                            value: 'mood', child: Text('By Mood')),
+                        DropdownMenuItem(value: 'mood', child: Text('By Mood')),
                       ],
-                      onChanged: (v) =>
-                          setState(() => _sortBy = v ?? 'newest'),
+                      onChanged: (v) => setState(() => _sortBy = v ?? 'newest'),
                     ),
                   ],
                 ),
@@ -205,10 +230,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     // Query
     if (_query.isNotEmpty) {
       final q = _query.toLowerCase();
-      results = results.where((e) =>
-          e.title.toLowerCase().contains(q) ||
-          e.content.toLowerCase().contains(q) ||
-          e.tags.any((t) => t.toLowerCase().contains(q))).toList();
+      results = results
+          .where((e) =>
+              e.title.toLowerCase().contains(q) ||
+              e.content.toLowerCase().contains(q) ||
+              e.tags.any((t) => t.toLowerCase().contains(q)))
+          .toList();
     }
 
     // Mood
@@ -234,8 +261,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         results.sort((a, b) => a.createdAt.compareTo(b.createdAt));
         break;
       case 'longest':
-        results.sort(
-            (a, b) => b.content.length.compareTo(a.content.length));
+        results.sort((a, b) => b.content.length.compareTo(a.content.length));
         break;
       case 'mood':
         results.sort((a, b) {

@@ -144,7 +144,7 @@ class _TagsScreenState extends ConsumerState<TagsScreen> {
     );
 
     if (ok == true) {
-      await _db.tagsBox.delete(tag.id);
+      await _db.deleteTag(tag.name, tag.id);
       setState(() {});
     }
   }
