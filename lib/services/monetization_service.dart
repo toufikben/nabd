@@ -3,49 +3,58 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 
-/// MonetizationService — نظام تحقيق الدخل الهجين.
-///
-/// النموذج:
-///   • Free: 7 مدخلات/شهر + 3 بذور
-///   • Pro Monthly: 4.99$ → غير محدود
-///   • Pro Yearly: 29.99$ (توفير 50%)
-///   • Lifetime: 79.99$ (دفعة واحدة)
+/// The app never derives subscription expiry locally. Subscription entitlement
+/// is `unknown` until a trusted verifier is connected; lifetime is granted only
+/// for the current process after an actual store callback.
+enum EntitlementStatus {
+  unknown,
+  pending,
+  lifetime,
+  subscriptionUnverified,
+  expired,
+  error
+}
+
+class EntitlementService {
+  EntitlementStatus statusFor(PurchaseDetails purchase) {
+    if (purchase.status == PurchaseStatus.pending) {
+      return EntitlementStatus.pending;
+    }
+    if (purchase.status == PurchaseStatus.error) return EntitlementStatus.error;
+    if (purchase.status != PurchaseStatus.purchased &&
+        purchase.status != PurchaseStatus.restored) {
+      return EntitlementStatus.unknown;
+    }
+    if (purchase.productID == MonetizationService.lifetimeId) {
+      return EntitlementStatus.lifetime;
+    }
+    if (purchase.productID == MonetizationService.proMonthlyId ||
+        purchase.productID == MonetizationService.proYearlyId) {
+      return EntitlementStatus.subscriptionUnverified;
+    }
+    return EntitlementStatus.error;
+  }
+}
+
 class MonetizationService extends StateNotifier<MonetizationState> {
   MonetizationService() : super(const MonetizationState()) {
     _init();
   }
 
   static final _iap = InAppPurchase.instance;
-
-  // ═══════════════════════════════════════════════════════════════
-  // Product IDs — يجب إنشاؤها في Play Console و App Store
-  // ═══════════════════════════════════════════════════════════════
   static const String proMonthlyId = 'nabd_pro_monthly';
   static const String proYearlyId = 'nabd_pro_yearly';
   static const String lifetimeId = 'nabd_lifetime';
+  static const Set<String> productIds = {proMonthlyId, proYearlyId, lifetimeId};
 
-  static const Set<String> productIds = {
-    proMonthlyId,
-    proYearlyId,
-    lifetimeId,
-  };
-
+  final _entitlements = EntitlementService();
   StreamSubscription<List<PurchaseDetails>>? _purchaseSub;
-
-  // ═══════════════════════════════════════════════════════════════
-  // Init
-  // ═══════════════════════════════════════════════════════════════
 
   Future<void> _init() async {
     final available = await _iap.isAvailable();
-    if (!available) {
-      state = state.copyWith(storeAvailable: false);
-      return;
-    }
-
+    if (!available) return;
     state = state.copyWith(storeAvailable: true);
     _purchaseSub = _iap.purchaseStream.listen(_onPurchaseUpdate);
-
     await _loadProducts();
   }
 
@@ -56,124 +65,87 @@ class MonetizationService extends StateNotifier<MonetizationState> {
         products: response.productDetails,
         error: response.error?.message,
       );
-    } catch (e) {
-      state = state.copyWith(error: '$e');
+    } catch (error) {
+      state = state.copyWith(
+          error: '$error', entitlementStatus: EntitlementStatus.error);
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // Purchase Flow
-  // ═══════════════════════════════════════════════════════════════
-
   Future<void> buy(ProductDetails product) async {
-    state = state.copyWith(purchasing: true, error: null);
+    if (!productIds.contains(product.id)) {
+      state = state.copyWith(
+          error: 'Unknown product', entitlementStatus: EntitlementStatus.error);
+      return;
+    }
+    state = state.copyWith(
+        purchasing: true,
+        error: null,
+        entitlementStatus: EntitlementStatus.pending);
     try {
-      final param = PurchaseParam(productDetails: product);
-      if (product.id == lifetimeId) {
-        await _iap.buyNonConsumable(purchaseParam: param);
-      } else {
-        await _iap.buyNonConsumable(purchaseParam: param);
-      }
-    } catch (e) {
-      state = state.copyWith(purchasing: false, error: '$e');
+      await _iap.buyNonConsumable(
+          purchaseParam: PurchaseParam(productDetails: product));
+    } catch (error) {
+      state = state.copyWith(
+          purchasing: false,
+          error: '$error',
+          entitlementStatus: EntitlementStatus.error);
     }
   }
 
   Future<void> restorePurchases() async {
-    state = state.copyWith(restoring: true, error: null);
+    state = state.copyWith(
+        restoring: true,
+        error: null,
+        entitlementStatus: EntitlementStatus.pending);
     try {
       await _iap.restorePurchases();
-    } catch (e) {
-      state = state.copyWith(restoring: false, error: '$e');
+    } catch (error) {
+      state = state.copyWith(
+          restoring: false,
+          error: '$error',
+          entitlementStatus: EntitlementStatus.error);
     }
   }
 
   void _onPurchaseUpdate(List<PurchaseDetails> purchases) {
     for (final purchase in purchases) {
-      if (purchase.status == PurchaseStatus.purchased ||
-          purchase.status == PurchaseStatus.restored) {
-        _deliverProduct(purchase);
-      } else if (purchase.status == PurchaseStatus.error) {
-        state = state.copyWith(
-          purchasing: false,
-          error: purchase.error?.message,
-        );
-      }
-
-      if (purchase.pendingCompletePurchase) {
-        _iap.completePurchase(purchase);
-      }
-    }
-  }
-
-  Future<void> _deliverProduct(PurchaseDetails purchase) async {
-    switch (purchase.productID) {
-      case proMonthlyId:
-      case proYearlyId:
-        // The store callback does not contain a verified subscription expiry.
-        // Do not invent one or persist an editable local entitlement.
-        state = state.copyWith(
-          purchasing: false,
-          restoring: false,
-          error: 'Subscription requires server-side entitlement verification.',
-        );
-        return;
-      case lifetimeId:
-        // Lifetime purchases are accepted only for this session until a
-        // production receipt verifier is connected; nothing is persisted.
+      final status = _entitlements.statusFor(purchase);
+      if (status == EntitlementStatus.lifetime) {
         state = state.copyWith(
           isPro: true,
           isLifetime: true,
           purchasing: false,
           restoring: false,
+          entitlementStatus: status,
         );
-        return;
-    }
-    state = state.copyWith(restoring: false, purchasing: false);
-  }
-
-  // ═══════════════════════════════════════════════════════════════
-  // Helpers
-  // ═══════════════════════════════════════════════════════════════
-
-  /// هل المستخدم Pro نشط؟
-  bool get isProActive {
-    if (state.isLifetime) return true;
-    if (!state.isPro) return false;
-    if (state.proExpiry == null) return true;
-    return state.proExpiry!.isAfter(DateTime.now());
-  }
-
-  /// فحص إذا كان بإمكان المستخدم كتابة مذكرة.
-  bool canWriteEntry({required int currentMonthEntries}) {
-    if (isProActive) return true;
-    return currentMonthEntries < 7;
-  }
-
-  /// عدد المدخلات المتبقية هذا الشهر.
-  int remainingEntries({required int currentMonthEntries}) {
-    if (isProActive) return -1; // غير محدود
-    return (7 - currentMonthEntries).clamp(0, 7);
-  }
-
-  /// نص السعر للعرض.
-  String priceFor(String productId) {
-    try {
-      final product = state.products.firstWhere((p) => p.id == productId);
-      return product.price;
-    } catch (_) {
-      // Fallback
-      switch (productId) {
-        case proMonthlyId:
-          return '\$4.99';
-        case proYearlyId:
-          return '\$29.99';
-        case lifetimeId:
-          return '\$79.99';
-        default:
-          return '';
+      } else {
+        state = state.copyWith(
+          purchasing: false,
+          restoring: false,
+          entitlementStatus: status,
+          error: status == EntitlementStatus.subscriptionUnverified
+              ? 'Subscription requires server-side entitlement verification.'
+              : purchase.error?.message,
+        );
+      }
+      if (purchase.pendingCompletePurchase) {
+        unawaited(_iap.completePurchase(purchase));
       }
     }
+  }
+
+  bool get isProActive => state.isLifetime;
+
+  bool canWriteEntry({required int currentMonthEntries}) =>
+      isProActive || currentMonthEntries < 7;
+
+  int remainingEntries({required int currentMonthEntries}) =>
+      isProActive ? -1 : (7 - currentMonthEntries).clamp(0, 7);
+
+  String priceFor(String productId) {
+    final matches = state.products.where((item) => item.id == productId);
+    if (matches.isNotEmpty) return matches.first.price;
+    return '';
   }
 
   @override
@@ -192,6 +164,7 @@ class MonetizationState {
   final bool restoring;
   final List<ProductDetails> products;
   final String? error;
+  final EntitlementStatus entitlementStatus;
 
   const MonetizationState({
     this.storeAvailable = false,
@@ -202,6 +175,7 @@ class MonetizationState {
     this.restoring = false,
     this.products = const [],
     this.error,
+    this.entitlementStatus = EntitlementStatus.unknown,
   });
 
   MonetizationState copyWith({
@@ -213,6 +187,7 @@ class MonetizationState {
     bool? restoring,
     List<ProductDetails>? products,
     String? error,
+    EntitlementStatus? entitlementStatus,
   }) =>
       MonetizationState(
         storeAvailable: storeAvailable ?? this.storeAvailable,
@@ -223,6 +198,7 @@ class MonetizationState {
         restoring: restoring ?? this.restoring,
         products: products ?? this.products,
         error: error,
+        entitlementStatus: entitlementStatus ?? this.entitlementStatus,
       );
 }
 

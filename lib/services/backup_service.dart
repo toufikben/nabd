@@ -170,6 +170,10 @@ class BackupService {
         return const ImportResult(
             ok: false, error: 'Backup contains too many files');
       }
+      if (!archive.any((file) => file.isFile && file.name == 'metadata.json')) {
+        return const ImportResult(
+            ok: false, error: 'Backup metadata is missing');
+      }
       var extractedBytes = 0;
       for (final file in archive) {
         if (!isSafeArchivePath(file.name) || file.size > maxFileBytes) {
@@ -202,8 +206,22 @@ class BackupService {
         final name = file.name;
         final content = file.content as List<int>;
 
-        if (name == 'entries.json') {
-          final entries = jsonDecode(utf8.decode(content)) as List;
+        if (name == 'metadata.json') {
+          final metadata = jsonDecode(utf8.decode(content));
+          if (metadata is! Map ||
+              metadata['version'] is! num ||
+              metadata['version'] > 2) {
+            return const ImportResult(
+              ok: false,
+              error: 'Unsupported backup schema',
+            );
+          }
+        } else if (name == 'entries.json') {
+          final decoded = jsonDecode(utf8.decode(content));
+          if (decoded is! List || !validateEntriesPayload(decoded)) {
+            return const ImportResult(ok: false, error: 'Invalid entries data');
+          }
+          final entries = decoded;
           final box = Hive.box('journal_entries');
           for (final entry in entries) {
             final map = Map<String, dynamic>.from(entry as Map);
@@ -216,8 +234,7 @@ class BackupService {
         } else if (name == 'settings.json') {
           final settings = jsonDecode(utf8.decode(content)) as Map;
           final box = Hive.box('settings');
-          for (final e in settings.entries) {
-            if (_entitlementKeys.contains(e.key.toString())) continue;
+          for (final e in filterRestoredSettings(settings).entries) {
             await box.put(e.key.toString(), e.value);
           }
         } else if (name == 'garden.json') {
@@ -229,8 +246,7 @@ class BackupService {
         } else if (name == 'achievements.json') {
           final data = jsonDecode(utf8.decode(content)) as Map;
           final box = Hive.box('settings');
-          for (final e in data.entries) {
-            if (_entitlementKeys.contains(e.key.toString())) continue;
+          for (final e in filterRestoredSettings(data).entries) {
             await box.put(e.key.toString(), e.value);
           }
         } else if (name.startsWith('images/')) {
@@ -348,6 +364,24 @@ class BackupService {
   }
 
   static const _entitlementKeys = {'is_pro', 'is_lifetime', 'pro_expiry'};
+
+  static Map<Object?, Object?> filterRestoredSettings(Map source) => {
+        for (final entry in source.entries)
+          if (!_entitlementKeys.contains(entry.key.toString()))
+            entry.key: entry.value,
+      };
+
+  static bool validateEntriesPayload(List entries) {
+    final ids = <String>{};
+    for (final entry in entries) {
+      if (entry is! Map) return false;
+      final id = entry['id']?.toString() ?? '';
+      if (id.isEmpty || !ids.add(id)) return false;
+      if (entry['title'] != null && entry['title'] is! String) return false;
+      if (entry['content'] != null && entry['content'] is! String) return false;
+    }
+    return true;
+  }
 
   static bool isSafeArchivePath(String name) {
     if (name.isEmpty || name.startsWith('/') || p.isAbsolute(name)) {

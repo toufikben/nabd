@@ -7,11 +7,13 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'app.dart';
 import 'services/encryption_service.dart';
 import 'services/notification_service.dart';
+import 'services/database_migration_service.dart';
 import 'services/settings_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
+  await DatabaseMigrationService().migrate();
   await Hive.openBox('journal_entries');
   await Hive.openBox('settings');
   await Hive.openBox('moods');

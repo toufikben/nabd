@@ -34,8 +34,11 @@ class EncryptionService {
     final stored = await _storage.read(key: _keyAlias);
     if (stored != null) {
       try {
-        _cachedKey = SecretKey(base64Decode(stored));
-        return;
+        final bytes = base64Decode(stored);
+        if (bytes.length == 32) {
+          _cachedKey = SecretKey(bytes);
+          return;
+        }
       } catch (_) {
         // مفتاح تالف → أنشئ جديد
       }
@@ -47,6 +50,19 @@ class EncryptionService {
     await _storage.write(key: _keyAlias, value: base64Encode(bytes));
     _cachedKey = newKey;
   }
+
+  Future<List<int>> hiveKeyBytes() async {
+    final bytes = await (await _getKey()).extractBytes();
+    if (bytes.length != 32) {
+      throw const FormatException('Invalid Hive encryption key length');
+    }
+    return bytes;
+  }
+
+  Future<String?> readMetadata(String key) => _storage.read(key: 'meta_$key');
+
+  Future<void> writeMetadata(String key, String value) =>
+      _storage.write(key: 'meta_$key', value: value);
 
   Future<SecretKey> _getKey() async {
     if (_cachedKey != null) return _cachedKey!;
