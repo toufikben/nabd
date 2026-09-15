@@ -77,3 +77,25 @@ Asset generation pass — 2026-09-15
 - No MP3 files were downloaded; the sounds step remains pending and requires license verification.
 - `identify` is unavailable in the sandbox, so verification used file presence, file sizes, and the conversion command output rather than ImageMagick metadata.
 - `.gitignore` was corrected so generated PNG assets can be tracked in Git.
+
+V3 final corrections — 2026-09-15
+---------------------------------
+- Added `lib/core/admob_config.dart` with Debug Test IDs and Release `--dart-define` Rewarded IDs.
+- Replaced the rewarded-ad service to use AdMobConfig and bounded retries.
+- Added Android AD_ID permission and Test App ID; added iOS GADApplicationIdentifier, SKAdNetwork entries, and tracking description.
+- Replaced both asset scripts with safer versions. The setup script now detects SVG tools, generates `ic_launcher_foreground.png`, and skips Flutter-only generation when Flutter is unavailable.
+- Added sound attribution, encryption tests, and a pre-launch checklist.
+- Safe sound download result: 2 files downloaded (`rain_soft.mp3`, `tibetan_bowl.mp3`); 8 source URLs returned HTTP 403 and remain missing.
+- Fixed the sound script so it does not overwrite or duplicate attribution entries on repeated runs.
+- Fixed AdMob production readiness to check the platform-specific iOS or Android Rewarded ID.
+- Important platform limitation: `--dart-define` does not automatically substitute values inside AndroidManifest.xml or Info.plist. Production App IDs still require a native/CI replacement step.
+- Additional missing platform resources: Android Manifest references `@xml/shortcuts`, `@xml/file_paths`, and `@xml/widget_journal_info`, but these files are absent. MainActivity, Gradle scaffolding, and iOS project/Podfile/entitlements are also absent from this extracted repository.
+
+V3 verification corrections — 2026-09-15
+-----------------------------------------
+- Initial v3 setup exposed two defects: `svgexport` received duplicated dimensions and the Android XML comment contained the invalid `--dart-define` token. Both were fixed.
+- Re-ran `scripts/setup_assets.sh`; all generated PNG dimensions now pass: icons 1024x1024, adaptive foreground 432x432, splash 800x800, Play icon 512x512, feature graphic 1024x500, screenshots 1080x1920.
+- AndroidManifest.xml and Info.plist now parse successfully as XML.
+- Safe downloader result remains 2/10 sounds; eight URLs return HTTP 403.
+- Remaining platform gaps are explicit: `@xml/shortcuts`, `@xml/file_paths`, and `@xml/widget_journal_info` are referenced but absent, and the Android/iOS scaffolds are incomplete.
+- The Test App IDs in native files are valid Google test values. Production App IDs cannot be generated locally and must be supplied through AdMob and inserted by a native/CI release step; dart-define alone does not rewrite native XML.

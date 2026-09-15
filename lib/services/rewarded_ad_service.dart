@@ -1,47 +1,31 @@
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-/// RewardedAdService — إعلانات مكافأة (اختياري للمستخدم المجاني).
-///
-/// الاستخدام:
-///   • "شاهد إعلاناً → احصل على بذرة إضافية"
-///   • "شاهد إعلاناً → احصل على قالب خاص"
-///
-/// ⚠️ يجب استبدال Test Ad Unit IDs بمعرفاتك من AdMob.
+import '../core/admob_config.dart';
+
+/// RewardedAdService — إعلانات مكافأة مع إدارة آمنة للمعرفات.
 class RewardedAdService {
   RewardedAd? _rewardedAd;
   bool _isLoading = false;
   int _retryCount = 0;
-
-  // ⚠️ AdMob Test IDs — استبدلها بمعرفاتك الحقيقية قبل النشر
-  static const String _androidTestId =
-      'ca-app-pub-3940256099942544/5224354917';
-  static const String _iosTestId =
-      'ca-app-pub-3940256099942544/1712485313';
-
-  static String get _adUnitId {
-    if (kDebugMode) {
-      return defaultTargetPlatform == TargetPlatform.iOS
-          ? _iosTestId
-          : _androidTestId;
-    }
-    // TODO: استبدل بمعرفاتك الإنتاجية
-    return defaultTargetPlatform == TargetPlatform.iOS
-        ? 'ca-app-pub-XXXXXXXXXXXXXXXX/YYYYYYYYYY'
-        : 'ca-app-pub-XXXXXXXXXXXXXXXX/ZZZZZZZZZZ';
-  }
+  static const int _maxRetries = 3;
 
   /// تحميل إعلان مكافأة.
   Future<void> loadAd() async {
     if (_isLoading || _rewardedAd != null) return;
+
+    // تحقق من جاهزية الإعدادات في Release
+    if (!kDebugMode && !AdMobConfig.isProductionReady) {
+      debugPrint('[RewardedAd] Production IDs missing — skipping load');
+      return;
+    }
+
     _isLoading = true;
 
     try {
       await RewardedAd.load(
-        adUnitId: _adUnitId,
-        request: const AdRequest(
-          nonPersonalizedAds: false,
-        ),
+        adUnitId: AdMobConfig.rewardedAdUnitId,
+        request: const AdRequest(nonPersonalizedAds: false),
         rewardedAdLoadCallback: RewardedAdLoadCallback(
           onAdLoaded: (ad) {
             _rewardedAd = ad;
@@ -52,11 +36,11 @@ class RewardedAdService {
           onAdFailedToLoad: (error) {
             _isLoading = false;
             _retryCount++;
-            debugPrint('[RewardedAd] Failed: ${error.message}');
+            debugPrint('[RewardedAd] Failed: ${error.code} ${error.message}');
 
-            // إعادة المحاولة بعد تأخير
-            if (_retryCount < 3) {
-              Future.delayed(Duration(seconds: _retryCount * 5), loadAd);
+            if (_retryCount < _maxRetries) {
+              final delay = Duration(seconds: 1 << _retryCount); // 2, 4, 8
+              Future.delayed(delay, loadAd);
             }
           },
         ),
@@ -67,15 +51,16 @@ class RewardedAdService {
     }
   }
 
-  /// عرض إعلان. يُستدعى `onReward` عند إكمال المشاهدة.
+  /// عرض إعلان.
   Future<bool> showAd({
     required VoidCallback onReward,
     VoidCallback? onDismiss,
+    VoidCallback? onFailed,
   }) async {
     final ad = _rewardedAd;
     if (ad == null) {
-      // حاول التحميل أولاً
       await loadAd();
+      onFailed?.call();
       return false;
     }
 
@@ -83,28 +68,30 @@ class RewardedAdService {
       onAdDismissedFullScreenContent: (ad) {
         ad.dispose();
         _rewardedAd = null;
-        loadAd(); // حمّل التالي
+        loadAd();
         onDismiss?.call();
       },
       onAdFailedToShowFullScreenContent: (ad, error) {
         ad.dispose();
         _rewardedAd = null;
         debugPrint('[RewardedAd] Show failed: ${error.message}');
+        onFailed?.call();
+      },
+      onAdImpression: () {
+        debugPrint('[RewardedAd] Impression recorded');
       },
     );
 
     ad.show(onUserEarnedReward: (ad, reward) {
-      debugPrint('[RewardedAd] Reward earned: ${reward.amount} ${reward.type}');
+      debugPrint('[RewardedAd] Reward: ${reward.amount} ${reward.type}');
       onReward();
     });
 
     return true;
   }
 
-  /// هل الإعلان جاهز للعرض؟
   bool get isReady => _rewardedAd != null;
 
-  /// إلغاء وتحرير.
   void dispose() {
     _rewardedAd?.dispose();
     _rewardedAd = null;

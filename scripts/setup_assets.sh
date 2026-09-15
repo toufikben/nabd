@@ -1,154 +1,195 @@
 #!/bin/bash
-# setup_assets.sh — يهيئ كل الأصول (PNG + Sounds).
+# setup_assets.sh — يهيئ كل الأصول (PNG + Sounds + Icons).
 #
-# المتطلبات:
-#   npm install -g svgexport  (لتحويل SVG)
-#   pip install requests  (لتحميل الأصوات)
+# يتطلب:
+#   • svgexport (npm install -g svgexport) أو librsvg أو inkscape
+#   • Flutter SDK (لتوليد الأيقونات)
+#   • curl (لتحميل الأصوات)
 
 set -e
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_ROOT"
 
-echo "🎨 نبض — Asset Setup"
-echo "===================="
+echo "🎨 نبض — Asset Setup v2"
+echo "======================="
 echo ""
 
 # ═══════════════════════════════════════════════════════════════
-# 1. إنشاء المجلدات
+# 1. المجلدات
 # ═══════════════════════════════════════════════════════════════
-echo "📁 Creating directories..."
-mkdir -p assets/icons
-mkdir -p assets/sounds
-mkdir -p assets/store/screenshots
-mkdir -p assets/store/output
-mkdir -p assets/social
+echo "📁 إنشاء المجلدات..."
+mkdir -p assets/icons assets/sounds assets/store/screenshots assets/store/output assets/social
+echo "  ✅"
 
 # ═══════════════════════════════════════════════════════════════
-# 2. تحويل SVGs إلى PNGs
+# 2. كشف أداة تحويل SVG
 # ═══════════════════════════════════════════════════════════════
+SVG_TOOL=""
 if command -v svgexport &> /dev/null; then
-  echo "🎨 Converting SVG to PNG..."
+  SVG_TOOL="svgexport"
+elif command -v inkscape &> /dev/null; then
+  SVG_TOOL="inkscape"
+elif command -v rsvg-convert &> /dev/null; then
+  SVG_TOOL="rsvg-convert"
+elif command -v convert &> /dev/null; then
+  SVG_TOOL="convert"
+fi
 
-  # App Icon
-  if [ -f assets/icons/app_icon.svg ]; then
+convert_svg() {
+  local svg="$1"
+  local png="$2"
+  local size="$3"
+
+  case "$SVG_TOOL" in
+    svgexport)
+      svgexport "$svg" "$png" "$size"
+      ;;
+    inkscape)
+      inkscape "$svg" --export-type=png --export-filename="$png" \
+        --export-width="${size%%:*}" --export-height="${size##*:}"
+      ;;
+    rsvg-convert)
+      rsvg-convert -w "${size%%:*}" -h "${size##*:}" "$svg" -o "$png"
+      ;;
+    convert)
+      convert -background none -resize "$size" "$svg" "$png"
+      ;;
+  esac
+}
+
+if [ -z "$SVG_TOOL" ]; then
+  echo "⚠️  لم يتم العثور على أداة SVG → PNG"
+  echo ""
+  echo "   ثبّت واحدة من التالي:"
+  echo "   • npm install -g svgexport"
+  echo "   • brew install librsvg    # rsvg-convert"
+  echo "   • brew install --cask inkscape"
+  echo "   • brew install imagemagick # convert"
+  echo ""
+  echo "   ثم أعد تشغيل السكربت."
+  echo ""
+else
+  echo "🎨 استخدام: $SVG_TOOL"
+  echo ""
+
+  # ─── App Icon ───
+  [ -f assets/icons/app_icon.svg ] && {
     echo "  → app_icon.png (1024×1024)"
-    svgexport assets/icons/app_icon.svg assets/icons/app_icon.png 1024:1024
-  fi
+    convert_svg assets/icons/app_icon.svg assets/icons/app_icon.png "1024:1024"
+  }
 
-  # App Icon Foreground
-  if [ -f assets/icons/app_icon_fg.svg ]; then
+  # ─── App Icon Foreground ───
+  [ -f assets/icons/app_icon_fg.svg ] && {
     echo "  → app_icon_fg.png (1024×1024)"
-    svgexport assets/icons/app_icon_fg.svg assets/icons/app_icon_fg.png 1024:1024
-  fi
+    convert_svg assets/icons/app_icon_fg.svg assets/icons/app_icon_fg.png "1024:1024"
+  }
 
-  # Splash
-  if [ -f assets/icons/splash_logo.svg ]; then
+  # ─── Splash Logo ───
+  [ -f assets/icons/splash_logo.svg ] && {
     echo "  → splash.png (800×800)"
-    svgexport assets/icons/splash_logo.svg assets/icons/splash.png 800:800
-  fi
+    convert_svg assets/icons/splash_logo.svg assets/icons/splash.png "800:800"
+  }
 
-  # Feature Graphic
-  if [ -f assets/store/feature_graphic.svg ]; then
+  # ─── Feature Graphic ───
+  [ -f assets/store/feature_graphic.svg ] && {
     echo "  → feature_graphic.png (1024×500)"
-    svgexport assets/store/feature_graphic.svg assets/store/feature_graphic.png 1024:500
-  fi
+    svgexport assets/store/feature_graphic.svg assets/store/feature_graphic.png "1024:500" 2>/dev/null || \
+      convert -background none -resize "1024x500" assets/store/feature_graphic.svg assets/store/feature_graphic.png
+  }
 
-  # Play Store Icon
-  if [ -f assets/icons/app_icon.svg ]; then
+  # ─── Play Store Icon ───
+  [ -f assets/icons/app_icon.svg ] && {
     echo "  → app_icon_playstore.png (512×512)"
-    svgexport assets/icons/app_icon.svg assets/store/app_icon_playstore.png 512:512
-  fi
+    convert_svg assets/icons/app_icon.svg assets/store/app_icon_playstore.png "512:512"
+  }
 
-  # Store Screenshots
+  # ─── Adaptive Icon Foreground ───
+  [ -f assets/icons/app_icon_fg.svg ] && {
+    echo "  → ic_launcher_foreground.png (432×432)"
+    convert_svg assets/icons/app_icon_fg.svg assets/icons/ic_launcher_foreground.png "432:432"
+  }
+
+  # ─── Store Screenshots ───
   if [ -d assets/store/screenshots ]; then
     for svg in assets/store/screenshots/*.svg; do
       [ -f "$svg" ] || continue
       filename=$(basename "$svg" .svg)
-      echo "  → screenshots/$filename.png"
-      svgexport "$svg" "assets/store/output/$filename.png" 1080:1920
+      echo "  → screenshots/$filename.png (1080×1920)"
+      svgexport "$svg" "assets/store/output/$filename.png" "1080:1920" 2>/dev/null || \
+        convert -background none -resize "1080x1920" "$svg" "assets/store/output/$filename.png"
     done
   fi
 
   echo "  ✅ SVG conversion complete"
-else
-  echo "⚠️  svgexport not found. Install with:"
-  echo "    npm install -g svgexport"
-  echo ""
-  echo "    أو استخدم أداة بديلة مثل:"
-  echo "    - Inkscape: inkscape --export-type=png --export-width=1024 file.svg"
-  echo "    - ImageMagick: convert -background none file.svg -resize 1024x1024 file.png"
 fi
 
 # ═══════════════════════════════════════════════════════════════
-# 3. تحميل الأصوات (Freesound API أو Pixabay)
+# 3. الأصوات
 # ═══════════════════════════════════════════════════════════════
 echo ""
-echo "🔊 Setting up sounds..."
-
-# قائمة الأصوات
-SOUNDS=(
-  "rain_soft"
-  "flute_dawn"
-  "harp_soft"
-  "oud_soft"
-  "tibetan_bowl"
-  "piano_gentle"
-  "birds_distant"
-  "paper_turn"
-  "whisper_gentle"
-  "drums_soft"
-)
-
-# إذا كانت الملفات موجودة، تخطَّ
-if [ -f "assets/sounds/piano_gentle.mp3" ]; then
-  echo "  ✅ Sounds already exist"
+echo "🔊 إعداد الأصوات..."
+if bash scripts/download_sounds.sh; then
+  echo "  ✅ تم"
 else
-  echo "  ⚠️  Sounds not found."
-  echo ""
-  echo "  📥 يُرجى تحميل الأصوات يدوياً من:"
-  echo "     • https://freesound.org"
-  echo "     • https://pixabay.com/music/"
-  echo "     • https://mixkit.co/free-sound-effects/"
-  echo ""
-  echo "  📁 ضعها في: assets/sounds/ بالأسماء التالية:"
-  for sound in "${SOUNDS[@]}"; do
-    echo "     • $sound.mp3"
-  done
-  echo ""
-  echo "  💡 يمكنك استخدام script آخر لتحميلها من Pixabay API:"
-  echo "     bash scripts/download_sounds.sh"
+  echo "  ⚠️  بعض الأصوات فشلت — راجع السجل أعلاه"
 fi
 
 # ═══════════════════════════════════════════════════════════════
-# 4. توليد الأيقونات و Splash
+# 4. توليد أيقونات Flutter
 # ═══════════════════════════════════════════════════════════════
 echo ""
-echo "🎨 Generating app icons and splash..."
+echo "🎨 توليد أيقونات Flutter..."
 
 if [ -f "assets/icons/app_icon.png" ]; then
-  flutter pub get
-  dart run flutter_launcher_icons
-  dart run flutter_native_splash:create
-  echo "  ✅ Icons and splash generated"
+  if command -v flutter &> /dev/null; then
+    flutter pub get
+    dart run flutter_launcher_icons || echo "  ⚠️  flutter_launcher_icons فشل"
+    dart run flutter_native_splash:create || echo "  ⚠️  flutter_native_splash فشل"
+    echo "  ✅"
+  else
+    echo "  ⚠️  Flutter غير مثبت — تخطّي التوليد"
+  fi
 else
-  echo "  ⚠️  app_icon.png not found. Run SVG conversion first."
+  echo "  ⚠️  app_icon.png غير موجود — تخطّي"
 fi
 
 # ═══════════════════════════════════════════════════════════════
 # 5. التحقق النهائي
 # ═══════════════════════════════════════════════════════════════
 echo ""
-echo "✅ Asset setup complete!"
+echo "═══════════════════════════════════════════════════════════"
+echo "📊 النتيجة النهائية:"
+echo "═══════════════════════════════════════════════════════════"
 echo ""
-echo "📊 Summary:"
-echo "   Icons:       $(ls assets/icons/*.png 2>/dev/null | wc -l) files"
-echo "   Sounds:      $(ls assets/sounds/*.mp3 2>/dev/null | wc -l) files"
-echo "   Screenshots: $(ls assets/store/output/*.png 2>/dev/null | wc -l) files"
+echo "   الأيقونات:      $(ls assets/icons/*.png 2>/dev/null | wc -l) / 5 متوقع"
+echo "   الأصوات:        $(ls assets/sounds/*.mp3 2>/dev/null | wc -l) / 10 متوقع"
+echo "   Screenshots:    $(ls assets/store/output/*.png 2>/dev/null | wc -l) / 6 متوقع"
 echo ""
-echo "📁 Next steps:"
-echo "   1. flutter pub get"
-echo "   2. flutter gen-l10n"
-echo "   3. flutter analyze"
-echo "   4. flutter test"
-echo "   5. flutter build appbundle --release"
+
+# فحص الملفات الحرجة
+MISSING=()
+for f in assets/icons/app_icon.png assets/icons/app_icon_fg.png assets/icons/splash.png; do
+  [ ! -f "$f" ] && MISSING+=("$f")
+done
+
+if [ ${#MISSING[@]} -eq 0 ]; then
+  echo "   ✅ كل الأصول الحرجة موجودة"
+else
+  echo "   ❌ ناقص:"
+  for f in "${MISSING[@]}"; do
+    echo "      • $f"
+  done
+fi
+echo ""
+
+if command -v flutter &> /dev/null; then
+  echo "🎯 الخطوات التالية:"
+  echo "   1. flutter pub get"
+  echo "   2. flutter gen-l10n"
+  echo "   3. flutter analyze"
+  echo "   4. flutter test"
+  echo "   5. flutter build appbundle --release"
+else
+  echo "⚠️  Flutter غير مثبت. ثبّته ثم أعد التشغيل."
+fi
