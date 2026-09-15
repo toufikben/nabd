@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../models/seed.dart';
 import '../../services/garden_service.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 /// SeedSelectionScreen — اختيار البذرة الأولى.
 class SeedSelectionScreen extends ConsumerStatefulWidget {
@@ -175,8 +176,10 @@ class _SeedSelectionScreenState extends ConsumerState<SeedSelectionScreen> {
                       duration: const Duration(milliseconds: 200),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: seed.colors.map((c) =>
-                              selected ? c : c.withValues(alpha: 0.3)).toList(),
+                          colors: seed.colors
+                              .map((c) =>
+                                  selected ? c : c.withValues(alpha: 0.3))
+                              .toList(),
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -229,8 +232,8 @@ class _SeedSelectionScreenState extends ConsumerState<SeedSelectionScreen> {
                       ? null
                       : () => setState(() => _step = 2),
                   style: FilledButton.styleFrom(
-                    backgroundColor: _selectedSeed?.colors.first ??
-                        AppColors.primary,
+                    backgroundColor:
+                        _selectedSeed?.colors.first ?? AppColors.primary,
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -355,8 +358,9 @@ class _SeedSelectionScreenState extends ConsumerState<SeedSelectionScreen> {
 
     try {
       await ref.read(gardenProvider.notifier).plantSeed(_selectedSeed!);
+      await Hive.box('settings').put('onboarding_completed', true);
       await Future.delayed(const Duration(milliseconds: 1500));
-      if (mounted) context.go('/garden');
+      if (mounted) context.go('/home');
     } catch (e) {
       if (mounted) {
         setState(() => _isPlanting = false);

@@ -26,6 +26,10 @@ import 'encryption_service.dart';
 ///   audio/           — التسجيلات
 class BackupService {
   final _encryption = EncryptionService();
+  static const maxBackupBytes = 50 * 1024 * 1024;
+  static const maxExtractedBytes = 200 * 1024 * 1024;
+  static const maxFileBytes = 25 * 1024 * 1024;
+  static const maxFileCount = 500;
 
   /// إنشاء نسخة احتياطية.
   Future<File> createBackup({
@@ -71,7 +75,8 @@ class BackupService {
     // 4. Achievements + Challenges
     final achievementsJson = <String, dynamic>{
       'unlocked': settingsBox.get('unlocked_achievements', defaultValue: []),
-      'joined_challenges': settingsBox.get('joined_challenges', defaultValue: []),
+      'joined_challenges':
+          settingsBox.get('joined_challenges', defaultValue: []),
       'legacy_entries': settingsBox.get('legacy_entries', defaultValue: []),
       'unsent_letters': settingsBox.get('unsent_letters', defaultValue: []),
       'time_capsules': settingsBox.get('time_capsules', defaultValue: []),
@@ -123,8 +128,10 @@ class BackupService {
         : Uint8List.fromList(zipBytes);
 
     // 9. Save
-    final extension = (password != null && password.isNotEmpty) ? 'nabd' : 'zip';
-    final filename = 'nabd_backup_${DateTime.now().millisecondsSinceEpoch}.$extension';
+    final extension =
+        (password != null && password.isNotEmpty) ? 'nabd' : 'zip';
+    final filename =
+        'nabd_backup_${DateTime.now().millisecondsSinceEpoch}.$extension';
     final backupFile = File('${tempDir.path}/$filename');
     await backupFile.writeAsBytes(outputBytes);
 
@@ -135,9 +142,15 @@ class BackupService {
   Future<ImportResult> restoreBackup(
     String backupPath, {
     String? password,
+    RestoreMode mode = RestoreMode.merge,
   }) async {
     try {
-      var bytes = await File(backupPath).readAsBytes();
+      final input = File(backupPath);
+      if (!await input.exists() || await input.length() > maxBackupBytes) {
+        return const ImportResult(
+            ok: false, error: 'Backup is missing or too large');
+      }
+      var bytes = await input.readAsBytes();
 
       // 1. Decrypt if needed
       if (password != null && password.isNotEmpty) {
@@ -153,6 +166,28 @@ class BackupService {
 
       // 2. Decode ZIP
       final archive = ZipDecoder().decodeBytes(bytes);
+      if (archive.length > maxFileCount) {
+        return const ImportResult(
+            ok: false, error: 'Backup contains too many files');
+      }
+      var extractedBytes = 0;
+      for (final file in archive) {
+        if (!isSafeArchivePath(file.name) || file.size > maxFileBytes) {
+          return const ImportResult(
+              ok: false, error: 'Backup contains an unsafe file');
+        }
+        extractedBytes += file.size;
+        if (extractedBytes > maxExtractedBytes) {
+          return const ImportResult(
+              ok: false, error: 'Backup expands beyond the limit');
+        }
+      }
+
+      if (mode == RestoreMode.replace) {
+        await Hive.box('journal_entries').clear();
+        await Hive.box('settings').clear();
+        await Hive.box('garden').clear();
+      }
 
       var imported = 0;
       var imagesRestored = 0;
@@ -182,6 +217,7 @@ class BackupService {
           final settings = jsonDecode(utf8.decode(content)) as Map;
           final box = Hive.box('settings');
           for (final e in settings.entries) {
+            if (_entitlementKeys.contains(e.key.toString())) continue;
             await box.put(e.key.toString(), e.value);
           }
         } else if (name == 'garden.json') {
@@ -194,10 +230,11 @@ class BackupService {
           final data = jsonDecode(utf8.decode(content)) as Map;
           final box = Hive.box('settings');
           for (final e in data.entries) {
+            if (_entitlementKeys.contains(e.key.toString())) continue;
             await box.put(e.key.toString(), e.value);
           }
         } else if (name.startsWith('images/')) {
-          final filename = name.substring(7);
+          final filename = p.basename(name.substring(7));
           final imagesDir = Directory('${docs.path}/images');
           if (!await imagesDir.exists()) {
             await imagesDir.create(recursive: true);
@@ -205,7 +242,7 @@ class BackupService {
           await File('${imagesDir.path}/$filename').writeAsBytes(content);
           imagesRestored++;
         } else if (name.startsWith('audio/')) {
-          final filename = name.substring(6);
+          final filename = p.basename(name.substring(6));
           final audioDir = Directory('${docs.path}/audio');
           if (!await audioDir.exists()) {
             await audioDir.create(recursive: true);
@@ -309,7 +346,25 @@ class BackupService {
     final bytes = utf8.encode(jsonEncode(data));
     archive.addFile(ArchiveFile(name, bytes.length, bytes));
   }
+
+  static const _entitlementKeys = {'is_pro', 'is_lifetime', 'pro_expiry'};
+
+  static bool isSafeArchivePath(String name) {
+    if (name.isEmpty || name.startsWith('/') || p.isAbsolute(name)) {
+      return false;
+    }
+    final decoded = Uri.decodeFull(name).replaceAll('\\', '/');
+    if (decoded.split('/').contains('..')) return false;
+    return decoded == 'entries.json' ||
+        decoded == 'settings.json' ||
+        decoded == 'garden.json' ||
+        decoded == 'achievements.json' ||
+        decoded.startsWith('images/') ||
+        decoded.startsWith('audio/');
+  }
 }
+
+enum RestoreMode { merge, replace }
 
 class ImportResult {
   final bool ok;

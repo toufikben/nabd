@@ -5,7 +5,6 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'app.dart';
-import 'services/biometric_service.dart';
 import 'services/encryption_service.dart';
 import 'services/notification_service.dart';
 import 'services/settings_service.dart';
@@ -23,9 +22,6 @@ Future<void> main() async {
   await SettingsService.init();
   await EncryptionService().initialize();
   await MobileAds.instance.initialize();
-
-  final bio = BiometricService();
-  await bio.updateLastActivity();
 
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(

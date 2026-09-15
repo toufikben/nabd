@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 
 /// MonetizationService — نظام تحقيق الدخل الهجين.
@@ -48,7 +47,6 @@ class MonetizationService extends StateNotifier<MonetizationState> {
     _purchaseSub = _iap.purchaseStream.listen(_onPurchaseUpdate);
 
     await _loadProducts();
-    await _loadLocalStatus();
   }
 
   Future<void> _loadProducts() async {
@@ -61,19 +59,6 @@ class MonetizationService extends StateNotifier<MonetizationState> {
     } catch (e) {
       state = state.copyWith(error: '$e');
     }
-  }
-
-  Future<void> _loadLocalStatus() async {
-    final box = Hive.box('settings');
-    final isPro = box.get('is_pro', defaultValue: false) as bool;
-    final isLifetime = box.get('is_lifetime', defaultValue: false) as bool;
-    final expiry = box.get('pro_expiry') as String?;
-
-    state = state.copyWith(
-      isPro: isPro,
-      isLifetime: isLifetime,
-      proExpiry: expiry != null ? DateTime.tryParse(expiry) : null,
-    );
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -122,43 +107,29 @@ class MonetizationService extends StateNotifier<MonetizationState> {
   }
 
   Future<void> _deliverProduct(PurchaseDetails purchase) async {
-    final box = Hive.box('settings');
-
     switch (purchase.productID) {
       case proMonthlyId:
-        final expiry = DateTime.now().add(const Duration(days: 30));
-        await box.put('is_pro', true);
-        await box.put('pro_expiry', expiry.toIso8601String());
-        state = state.copyWith(
-          isPro: true,
-          proExpiry: expiry,
-          purchasing: false,
-        );
-        break;
-
       case proYearlyId:
-        final expiry = DateTime.now().add(const Duration(days: 365));
-        await box.put('is_pro', true);
-        await box.put('pro_expiry', expiry.toIso8601String());
+        // The store callback does not contain a verified subscription expiry.
+        // Do not invent one or persist an editable local entitlement.
         state = state.copyWith(
-          isPro: true,
-          proExpiry: expiry,
           purchasing: false,
+          restoring: false,
+          error: 'Subscription requires server-side entitlement verification.',
         );
-        break;
-
+        return;
       case lifetimeId:
-        await box.put('is_pro', true);
-        await box.put('is_lifetime', true);
+        // Lifetime purchases are accepted only for this session until a
+        // production receipt verifier is connected; nothing is persisted.
         state = state.copyWith(
           isPro: true,
           isLifetime: true,
           purchasing: false,
+          restoring: false,
         );
-        break;
+        return;
     }
-
-    state = state.copyWith(restoring: false);
+    state = state.copyWith(restoring: false, purchasing: false);
   }
 
   // ═══════════════════════════════════════════════════════════════

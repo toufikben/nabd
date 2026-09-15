@@ -69,7 +69,7 @@ class BiometricService {
   bool shouldShowLock() {
     if (!isLockEnabled()) return false;
     final last = getLastActivity();
-    if (last == null) return false;
+    if (last == null) return true;
     return DateTime.now().difference(last).inMinutes >= getLockTimeout();
   }
 }

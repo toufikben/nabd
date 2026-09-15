@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -10,13 +13,21 @@ class SplashService {
   Future<void> playSplashSound(String soundId) async {
     try {
       await _channel.invokeMethod('playSound', {'soundId': soundId});
-    } catch (_) {}
+    } on MissingPluginException {
+      debugPrint('Splash sound is unavailable on this platform.');
+    } on PlatformException catch (error) {
+      debugPrint('Splash sound failed: ${error.code}');
+    }
   }
 
   Future<void> stopSplashSound() async {
     try {
       await _channel.invokeMethod('stopSound');
-    } catch (_) {}
+    } on MissingPluginException {
+      debugPrint('Splash sound stop is unavailable on this platform.');
+    } on PlatformException catch (error) {
+      debugPrint('Splash sound stop failed: ${error.code}');
+    }
   }
 
   /// يعيد splash التالي (لا يكرر السابق مباشرة).
@@ -31,7 +42,7 @@ class SplashService {
       next = DateTime.now().microsecondsSinceEpoch % _splashCount + 1;
     } while (next == last && _splashCount > 1);
 
-    box.put('last_splash_id', next);
+    unawaited(box.put('last_splash_id', next));
     return next;
   }
 

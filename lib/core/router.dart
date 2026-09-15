@@ -29,14 +29,31 @@ import '../features/social/legacy_journal_screen.dart';
 import '../features/social/time_capsule_screen.dart';
 import '../features/motivation/achievements_screen.dart';
 import '../features/motivation/challenges_screen.dart';
+import '../services/biometric_service.dart';
+
+String? _entryIdFromState(GoRouterState state) {
+  final extra = state.extra;
+  if (extra == null) return state.uri.queryParameters['id'];
+  if (extra is! String || extra.trim().isEmpty) return null;
+  return extra;
+}
 
 final router = GoRouter(
   initialLocation: '/',
+  redirect: (_, state) {
+    final location = state.uri.path;
+    final exempt =
+        location == '/' || location == '/lock' || location == '/seed-selection';
+    if (!exempt && BiometricService().shouldShowLock()) return '/lock';
+    return null;
+  },
   routes: [
     GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
     GoRoute(path: '/lock', builder: (_, __) => const LockScreen()),
     GoRoute(path: '/home', builder: (_, __) => const HomeScreen()),
-    GoRoute(path: '/editor', builder: (_, state) => EditorScreen(entryId: state.extra as String?)),
+    GoRoute(
+        path: '/editor',
+        builder: (_, state) => EditorScreen(entryId: _entryIdFromState(state))),
     GoRoute(path: '/calendar', builder: (_, __) => const CalendarScreen()),
     GoRoute(path: '/search', builder: (_, __) => const SearchScreen()),
     GoRoute(path: '/tags', builder: (_, __) => const TagsScreen()),
@@ -46,21 +63,38 @@ final router = GoRouter(
     GoRoute(path: '/heatmap', builder: (_, __) => const HeatmapScreen()),
     GoRoute(path: '/weather', builder: (_, __) => const WeatherScreen()),
     GoRoute(path: '/word-cloud', builder: (_, __) => const WordCloudScreen()),
-    GoRoute(path: '/emotion-radar', builder: (_, __) => const EmotionRadarScreen()),
+    GoRoute(
+        path: '/emotion-radar', builder: (_, __) => const EmotionRadarScreen()),
     GoRoute(path: '/year-review', builder: (_, __) => const YearReviewScreen()),
     GoRoute(path: '/garden', builder: (_, __) => const GardenScreen()),
-    GoRoute(path: '/seed-selection', builder: (_, __) => const SeedSelectionScreen()),
+    GoRoute(
+        path: '/seed-selection',
+        builder: (_, __) => const SeedSelectionScreen()),
     GoRoute(path: '/worry-box', builder: (_, __) => const WorryBoxScreen()),
-    GoRoute(path: '/worry-release', builder: (_, __) => const WorryReleaseScreen()),
+    GoRoute(
+        path: '/worry-release', builder: (_, __) => const WorryReleaseScreen()),
     GoRoute(path: '/breathing', builder: (_, __) => const BreathingScreen()),
-    GoRoute(path: '/dream-journal', builder: (_, __) => const DreamJournalScreen()),
-    GoRoute(path: '/gratitude-garden', builder: (_, __) => const GratitudeGardenScreen()),
-    GoRoute(path: '/gratitude-journal', builder: (_, __) => const GratitudeJournalScreen()),
-    GoRoute(path: '/future-letters', builder: (_, __) => const FutureLettersScreen()),
-    GoRoute(path: '/unsent-letters', builder: (_, __) => const UnsentLettersScreen()),
-    GoRoute(path: '/legacy-journal', builder: (_, __) => const LegacyJournalScreen()),
-    GoRoute(path: '/time-capsule', builder: (_, __) => const TimeCapsuleScreen()),
-    GoRoute(path: '/achievements', builder: (_, __) => const AchievementsScreen()),
+    GoRoute(
+        path: '/dream-journal', builder: (_, __) => const DreamJournalScreen()),
+    GoRoute(
+        path: '/gratitude-garden',
+        builder: (_, __) => const GratitudeGardenScreen()),
+    GoRoute(
+        path: '/gratitude-journal',
+        builder: (_, __) => const GratitudeJournalScreen()),
+    GoRoute(
+        path: '/future-letters',
+        builder: (_, __) => const FutureLettersScreen()),
+    GoRoute(
+        path: '/unsent-letters',
+        builder: (_, __) => const UnsentLettersScreen()),
+    GoRoute(
+        path: '/legacy-journal',
+        builder: (_, __) => const LegacyJournalScreen()),
+    GoRoute(
+        path: '/time-capsule', builder: (_, __) => const TimeCapsuleScreen()),
+    GoRoute(
+        path: '/achievements', builder: (_, __) => const AchievementsScreen()),
     GoRoute(path: '/challenges', builder: (_, __) => const ChallengesScreen()),
   ],
 );

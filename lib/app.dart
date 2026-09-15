@@ -5,17 +5,43 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/l10n/app_localizations.dart';
 import 'core/router.dart';
 import 'core/theme/app_theme.dart';
+import 'services/biometric_service.dart';
 import 'services/settings_service.dart';
 
-class NabdApp extends ConsumerWidget {
+class NabdApp extends ConsumerStatefulWidget {
   const NabdApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<NabdApp> createState() => _NabdAppState();
+}
+
+class _NabdAppState extends ConsumerState<NabdApp> with WidgetsBindingObserver {
+  final _biometric = BiometricService();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _biometric.shouldShowLock()) {
+      router.go('/lock');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final themeMode = ref.watch(themeModeProvider);
     final locale = ref.watch(localeProvider);
     final genderTheme = ref.watch(genderThemeProvider);
-
     final themeData = AppTheme.getTheme(
       themeMode == ThemeMode.dark ? 'dark' : 'light',
       genderTheme,

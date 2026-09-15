@@ -7,6 +7,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../core/app_settings.dart';
 import '../../services/splash_service.dart';
+import '../../services/biometric_service.dart';
 
 /// SplashScreen — يعرض splash عشوائي من 5 (لا يكرر السابق).
 class SplashScreen extends StatefulWidget {
@@ -32,7 +33,8 @@ class _SplashScreenState extends State<SplashScreen> {
     final soundEnabled =
         box.get('splash_sound_enabled', defaultValue: true) as bool;
     final customSound = box.get('splash_sound') as String?;
-    final requestedSound = customSound ?? SplashService.defaultSoundFor(_splashId);
+    final requestedSound =
+        customSound ?? SplashService.defaultSoundFor(_splashId);
     final sound = AppSettings.fallbackSound(requestedSound);
 
     if (soundEnabled && AppSettings.splashSoundEnabled) {
@@ -46,8 +48,13 @@ class _SplashScreenState extends State<SplashScreen> {
 
     // إذا لا بذرة → شاشة اختيار البذرة
     final gardenBox = Hive.box('garden');
-    if (gardenBox.isEmpty) {
+    final settings = Hive.box('settings');
+    final onboardingCompleted =
+        settings.get('onboarding_completed', defaultValue: false) == true;
+    if (!onboardingCompleted && gardenBox.isEmpty) {
       context.go('/seed-selection');
+    } else if (BiometricService().shouldShowLock()) {
+      context.go('/lock');
     } else {
       context.go('/home');
     }
@@ -103,7 +110,10 @@ class _SplashScreenState extends State<SplashScreen> {
             const Text('🌱', style: TextStyle(fontSize: 100))
                 .animate()
                 .fadeIn(delay: 1200.ms)
-                .scale(delay: 1200.ms, duration: 600.ms, curve: Curves.easeOutBack),
+                .scale(
+                    delay: 1200.ms,
+                    duration: 600.ms,
+                    curve: Curves.easeOutBack),
             const SizedBox(height: 24),
             _buildBrand(),
           ],

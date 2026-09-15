@@ -59,7 +59,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         _imagePaths = List<String>.from(entry.imagePaths);
         _audioPath = entry.audioPath;
       });
-    } catch (_) {}
+    } catch (error) {
+      debugPrint('Unable to load journal entry: $error');
+    }
   }
 
   @override
@@ -178,6 +180,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   }
 
   Future<void> _toggleVoiceToText() async {
+    final localeId = Localizations.localeOf(context).toLanguageTag();
     if (_isListening) {
       await _voice.stopListening();
       setState(() => _isListening = false);
@@ -189,6 +192,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
     setState(() => _isListening = true);
     await _voice.startListening(
+      localeId: localeId,
       onResult: (text) {
         final current = _contentController.text;
         _contentController.text = '$current $text'.trim();
@@ -359,8 +363,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                       onDeleted: () {
                         setState(() => _tags.remove(tag));
                       },
-                      backgroundColor:
-                          AppColors.primary.withValues(alpha: 0.1),
+                      backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                       labelStyle: const TextStyle(
                         fontSize: 11,
                         color: AppColors.primary,

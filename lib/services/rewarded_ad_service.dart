@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -60,27 +62,36 @@ class RewardedAdService {
     final ad = _rewardedAd;
     if (ad == null) {
       await loadAd();
+      for (var i = 0; i < 20 && _rewardedAd == null; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 250));
+      }
+    }
+    final loadedAd = _rewardedAd;
+    if (loadedAd == null) {
       onFailed?.call();
       return false;
     }
 
-    ad.fullScreenContentCallback = FullScreenContentCallback(
+    var rewardDelivered = false;
+
+    loadedAd.fullScreenContentCallback = FullScreenContentCallback(
       onAdDismissedFullScreenContent: (ad) {
         ad.dispose();
         _rewardedAd = null;
-        loadAd();
+        unawaited(loadAd());
         onDismiss?.call();
       },
       onAdFailedToShowFullScreenContent: (ad, error) {
         ad.dispose();
         _rewardedAd = null;
-        debugPrint('[RewardedAd] Show failed: ${error.message}');
         onFailed?.call();
+        unawaited(loadAd());
       },
     );
 
-    ad.show(onUserEarnedReward: (ad, reward) {
-      debugPrint('[RewardedAd] Reward: ${reward.amount} ${reward.type}');
+    loadedAd.show(onUserEarnedReward: (_, __) {
+      if (rewardDelivered) return;
+      rewardDelivered = true;
       onReward();
     });
 
