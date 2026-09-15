@@ -68,3 +68,12 @@ Final v2 static pass — 2026-09-15
 - Bash syntax checks pass for `scripts/setup_assets.sh` and `scripts/download_sounds.sh`.
 - Remaining blockers are environmental or release-level: no Flutter/Dart SDK, no generated PNG/audio assets, incomplete platform scaffolding, no real store products, no production AdMob IDs, and no runtime cryptographic or purchase tests.
 - The roadmap is now tracked in `ROADMAP.md` and must be updated with every subsequent change.
+
+Asset generation pass — 2026-09-15
+----------------------------------
+- Installed `svgexport` with npm and ran `scripts/convert_svg_to_png.sh` successfully.
+- Generated 12 PNG files: app icon, adaptive foreground, launcher foreground, splash, Play Store icon, feature graphic, and six store screenshots.
+- Ran `scripts/setup_assets.sh`; SVG conversion completed, then the script stopped at `flutter pub get` with `flutter: command not found`.
+- No MP3 files were downloaded; the sounds step remains pending and requires license verification.
+- `identify` is unavailable in the sandbox, so verification used file presence, file sizes, and the conversion command output rather than ImageMagick metadata.
+- `.gitignore` was corrected so generated PNG assets can be tracked in Git.
