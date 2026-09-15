@@ -110,7 +110,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.book_outlined, size: 80, color: AppColors.textSecondary.withOpacity(0.3)),
+                        Icon(Icons.book_outlined, size: 80, color: AppColors.textSecondary.withValues(alpha: 0.3)),
                         const SizedBox(height: 16),
                         Text('No entries yet', style: Theme.of(context).textTheme.titleLarge),
                         const SizedBox(height: 8),
@@ -172,7 +172,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
         ),
         child: Column(
           children: [

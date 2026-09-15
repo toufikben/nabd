@@ -130,3 +130,11 @@ GitHub Actions rerun after v5 fixes — 2026-09-15
 - Remaining analyzer failures were only 3 syntax errors at `lib/features/splash/splash_screen.dart:286`: the callback used a comma after a chained `return` expression (`.fadeOut(),`) instead of a semicolon. This has now been corrected to `.fadeOut();`.
 - The run also reported 16 non-fatal warnings, primarily unused imports/locals and a duplicate router import. These do not block the build but should be cleaned after a successful build.
 - GitHub CLI reported a 403 while requesting annotations because the token lacks `checks:read`; this is a reporting-permission warning, not a Dart or Android build error.
+
+Analyzer cleanup pass — 2026-09-15
+----------------------------------
+- The latest run `35010087803` had no errors or warnings; it reported four informational lints and exited non-zero because the project treats analyzer infos as fatal.
+- Replaced deprecated `withOpacity` calls in `lib/features/home/home_screen.dart` with `withValues(alpha: ...)`.
+- Removed the unnecessary `.toList()` from the spread in `lib/features/stats/stats_screen.dart`.
+- Updated `lib/services/voice_to_text_service.dart` to use `SpeechListenOptions(localeId: ...)`.
+- The next Actions run will verify the analyzer, tests, and APK/AAB build after these changes.
