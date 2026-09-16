@@ -1,8 +1,8 @@
 # خارطة طريق نبض — Nabd
 
-**آخر تحديث:** 2026-09-16  
+**آخر تحديث:** 2026-09-16 بعد حزمة UI/UX  
 **الفرع:** `main`  
-**آخر commit:** `4ff67d8` — `fix: close remaining Nabd production blockers`
+**آخر commit:** `defd8fd` — `feat: refresh Nabd navigation and Material 3 theme`
 
 ## الحالة الحالية
 
@@ -22,6 +22,7 @@
 | P1 | App Links routes | ✅ مطبق | custom scheme وHTTPS routes مرتبطة بالـGoRouter |
 | P1 | App Links domain verification | ❌ غير مكتمل | `https://nabd.app/.well-known/assetlinks.json` يعيد 404؛ يلزم SHA-256 لشهادة Release ونشر الملف |
 | P1 | Backup validation | ✅ مطبق | metadata/schema/duplicate IDs/path traversal/ZIP limits/entitlement filtering |
+| P1 | UI/UX navigation refresh | ✅ مطبق | Material 3 theme، bottom navigation، Writing/Journey/Insights hubs، ودعم dark/gender themes |
 | P1 | Localization وRTL وTheme | ⚠️ static فقط | يلزم اختبار runtime على جهاز أو emulator |
 | P2 | Physical runtime validation | ⏳ متبقٍ | لا يوجد جهاز أو emulator متاح في بيئة التدقيق |
 | P2 | iOS scaffold/release | ⏳ متبقٍ | لم يُجهز مسار release كامل لـiOS |
