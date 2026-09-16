@@ -1,5 +1,5 @@
 name: nabd
-description: نبض — مذكرتك الخاصة المحلية بالكامل
+description: Pulse — your private fully local journal
 version: 1.0.0+1
 publish_to: 'none'
 
