@@ -1,28 +1,38 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:just_audio/just_audio.dart';
 
-/// SoundscapeService — أصوات محيطة للكتابة.
-///
-/// ملاحظة: يستخدم أصوات النظام أو ملفات صوتية في assets.
+/// SoundscapeService — أصوات محيطة فعلية للكتابة.
 class SoundscapeService extends StateNotifier<SoundscapeState> {
-  SoundscapeService() : super(const SoundscapeState());
-
-  /// تفعيل/تعطيل الصوت.
-  Future<void> toggle() async {
-    state = state.copyWith(enabled: !state.enabled);
-    await Hive.box('settings').put('soundscape_enabled', state.enabled);
+  SoundscapeService() : super(const SoundscapeState()) {
+    load();
   }
 
-  /// تغيير نوع الصوت.
+  final AudioPlayer _player = AudioPlayer();
+
+  Future<void> toggle() async {
+    final enabled = !state.enabled;
+    state = state.copyWith(enabled: enabled);
+    await Hive.box('settings').put('soundscape_enabled', enabled);
+    if (enabled) {
+      await _playCurrent();
+    } else {
+      await _player.stop();
+    }
+  }
+
   Future<void> setType(String type) async {
     state = state.copyWith(type: type);
     await Hive.box('settings').put('soundscape_type', type);
+    if (state.enabled) await _playCurrent();
   }
 
-  /// تغيير مستوى الصوت.
   Future<void> setVolume(double volume) async {
-    state = state.copyWith(volume: volume);
-    await Hive.box('settings').put('soundscape_volume', volume);
+    final safeVolume = volume.clamp(0.0, 1.0);
+    state = state.copyWith(volume: safeVolume);
+    await Hive.box('settings').put('soundscape_volume', safeVolume);
+    await _player.setVolume(safeVolume);
   }
 
   void load() {
@@ -30,8 +40,45 @@ class SoundscapeService extends StateNotifier<SoundscapeState> {
     state = SoundscapeState(
       enabled: box.get('soundscape_enabled', defaultValue: false) as bool,
       type: box.get('soundscape_type', defaultValue: 'rain') as String,
-      volume: (box.get('soundscape_volume', defaultValue: 0.5) as num).toDouble(),
+      volume:
+          (box.get('soundscape_volume', defaultValue: 0.5) as num).toDouble(),
     );
+  }
+
+  Future<void> _playCurrent() async {
+    try {
+      await _player.setAsset('assets/sounds/${_assetFor(state.type)}.mp3');
+      await _player.setLoopMode(LoopMode.one);
+      await _player.setVolume(state.volume);
+      await _player.play();
+    } catch (error) {
+      debugPrint('Soundscape failed for ${state.type}: $error');
+    }
+  }
+
+  String _assetFor(String type) {
+    switch (type) {
+      case 'birds':
+        return 'birds_distant';
+      case 'rain':
+        return 'rain_soft';
+      case 'night':
+        return 'tibetan_bowl';
+      case 'forest':
+        return 'birds_distant';
+      case 'ocean':
+      case 'cafe':
+      case 'fire':
+      case 'wind':
+      default:
+        return 'piano_gentle';
+    }
+  }
+
+  @override
+  void dispose() {
+    _player.dispose();
+    super.dispose();
   }
 }
 
@@ -73,13 +120,18 @@ class SoundscapeOption {
 
   static const all = [
     SoundscapeOption(id: 'rain', emoji: '🌧️', labelEn: 'Rain', labelAr: 'مطر'),
-    SoundscapeOption(id: 'forest', emoji: '🌲', labelEn: 'Forest', labelAr: 'غابة'),
-    SoundscapeOption(id: 'ocean', emoji: '🌊', labelEn: 'Ocean', labelAr: 'محيط'),
+    SoundscapeOption(
+        id: 'forest', emoji: '🌲', labelEn: 'Forest', labelAr: 'غابة'),
+    SoundscapeOption(
+        id: 'ocean', emoji: '🌊', labelEn: 'Ocean', labelAr: 'محيط'),
     SoundscapeOption(id: 'cafe', emoji: '☕', labelEn: 'Café', labelAr: 'مقهى'),
-    SoundscapeOption(id: 'fire', emoji: '🔥', labelEn: 'Fireplace', labelAr: 'مدفأة'),
-    SoundscapeOption(id: 'night', emoji: '🌙', labelEn: 'Night', labelAr: 'ليل'),
+    SoundscapeOption(
+        id: 'fire', emoji: '🔥', labelEn: 'Fireplace', labelAr: 'مدفأة'),
+    SoundscapeOption(
+        id: 'night', emoji: '🌙', labelEn: 'Night', labelAr: 'ليل'),
     SoundscapeOption(id: 'wind', emoji: '💨', labelEn: 'Wind', labelAr: 'رياح'),
-    SoundscapeOption(id: 'birds', emoji: '🐦', labelEn: 'Birds', labelAr: 'طيور'),
+    SoundscapeOption(
+        id: 'birds', emoji: '🐦', labelEn: 'Birds', labelAr: 'طيور'),
   ];
 }
 

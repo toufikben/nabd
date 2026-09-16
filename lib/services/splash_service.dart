@@ -1,38 +1,39 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:just_audio/just_audio.dart';
 
 /// SplashService — يدير السبلاش الدوّار + الأصوات.
 class SplashService {
-  static const _channel = MethodChannel('com.productchat/splash');
   static const _splashCount = 5;
 
-  /// يشغّل صوتًا.
+  final AudioPlayer _player = AudioPlayer();
+
+  /// يشغّل ملف الصوت المضمّن المرتبط بالـsplash.
   Future<void> playSplashSound(String soundId) async {
     try {
-      await _channel.invokeMethod('playSound', {'soundId': soundId});
-    } on MissingPluginException {
-      debugPrint('Splash sound is unavailable on this platform.');
-    } on PlatformException catch (error) {
-      debugPrint('Splash sound failed: ${error.code}');
+      await _player.setAsset('assets/sounds/$soundId.mp3');
+      await _player.setVolume(0.65);
+      await _player.play();
+    } catch (error) {
+      debugPrint('Splash sound failed for $soundId: $error');
     }
   }
 
   Future<void> stopSplashSound() async {
     try {
-      await _channel.invokeMethod('stopSound');
-    } on MissingPluginException {
-      debugPrint('Splash sound stop is unavailable on this platform.');
-    } on PlatformException catch (error) {
-      debugPrint('Splash sound stop failed: ${error.code}');
+      await _player.stop();
+    } catch (error) {
+      debugPrint('Splash sound stop failed: $error');
     }
   }
 
+  Future<void> dispose() async {
+    await _player.dispose();
+  }
+
   /// يعيد splash التالي (لا يكرر السابق مباشرة).
-  ///
-  /// المنطق: random exclude previous.
   static int getNextSplash() {
     final box = Hive.box('settings');
     final last = box.get('last_splash_id', defaultValue: 0) as int;

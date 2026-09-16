@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -58,6 +59,12 @@ class _SplashScreenState extends State<SplashScreen> {
     } else {
       context.go('/home');
     }
+  }
+
+  @override
+  void dispose() {
+    unawaited(_splash.dispose());
+    super.dispose();
   }
 
   @override
