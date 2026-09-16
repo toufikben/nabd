@@ -9,8 +9,16 @@ class AppSettings {
 
   /// هذه القائمة تعكس الملفات الموجودة فعليًا في assets/sounds.
   static const Set<String> availableSounds = {
+    'birds_distant',
+    'drums_soft',
+    'flute_dawn',
+    'harp_soft',
+    'oud_soft',
+    'paper_turn',
+    'piano_gentle',
     'rain_soft',
     'tibetan_bowl',
+    'whisper_gentle',
   };
 
   static bool hasSoundFile(String soundId) => availableSounds.contains(soundId);
