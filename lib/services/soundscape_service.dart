@@ -67,9 +67,13 @@ class SoundscapeService extends StateNotifier<SoundscapeState> {
       case 'forest':
         return 'birds_distant';
       case 'ocean':
+        return 'ocean_soft';
       case 'cafe':
+        return 'cafe_ambience';
       case 'fire':
+        return 'fireplace_crackle';
       case 'wind':
+        return 'wind_gentle';
       default:
         return 'piano_gentle';
     }

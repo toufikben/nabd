@@ -10,14 +10,18 @@ class AppSettings {
   /// هذه القائمة تعكس الملفات الموجودة فعليًا في assets/sounds.
   static const Set<String> availableSounds = {
     'birds_distant',
+    'cafe_ambience',
     'drums_soft',
+    'fireplace_crackle',
     'flute_dawn',
     'harp_soft',
+    'ocean_soft',
     'oud_soft',
     'paper_turn',
     'piano_gentle',
     'rain_soft',
     'tibetan_bowl',
+    'wind_gentle',
     'whisper_gentle',
   };
 
