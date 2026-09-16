@@ -75,7 +75,7 @@ class SoundscapeService extends StateNotifier<SoundscapeState> {
       case 'wind':
         return 'wind_gentle';
       default:
-        return 'piano_gentle';
+        return 'rain_soft';
     }
   }
 

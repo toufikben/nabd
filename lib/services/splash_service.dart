@@ -51,17 +51,17 @@ class SplashService {
   static String defaultSoundFor(int splashId) {
     switch (splashId) {
       case 1:
-        return 'rain_soft';
+        return 'splash_rain';
       case 2:
-        return 'flute_dawn';
+        return 'splash_flute';
       case 3:
-        return 'harp_soft';
+        return 'splash_harp';
       case 4:
-        return 'oud_soft';
+        return 'splash_oud';
       case 5:
-        return 'tibetan_bowl';
+        return 'splash_bowl';
       default:
-        return 'piano_gentle';
+        return 'splash_rain';
     }
   }
 }
@@ -87,35 +87,35 @@ class SplashOption {
       name: 'First Seed',
       description: 'بذرة تسقط وتنبت',
       emoji: '🌱',
-      sounds: ['rain_soft', 'piano_gentle'],
+      sounds: ['splash_rain'],
     ),
     SplashOption(
       id: 2,
       name: 'New Dawn',
       description: 'شروق الشمس خلف الجبال',
       emoji: '🌅',
-      sounds: ['flute_dawn', 'birds_distant'],
+      sounds: ['splash_flute', 'birds_distant'],
     ),
     SplashOption(
       id: 3,
       name: 'Book to Butterfly',
       description: 'كتاب يتحول إلى فراشات',
       emoji: '🦋',
-      sounds: ['paper_turn', 'harp_soft'],
+      sounds: ['paper_turn', 'splash_harp'],
     ),
     SplashOption(
       id: 4,
       name: 'Candle Light',
       description: 'شمعة تضيء غرفة دافئة',
       emoji: '🕯️',
-      sounds: ['oud_soft', 'whisper_gentle'],
+      sounds: ['splash_oud', 'whisper_gentle'],
     ),
     SplashOption(
       id: 5,
       name: 'Circle of Life',
       description: 'دائرة ضوء تكشف شجرة',
       emoji: '💫',
-      sounds: ['tibetan_bowl', 'drums_soft'],
+      sounds: ['splash_bowl', 'drums_soft'],
     ),
   ];
 }
