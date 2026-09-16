@@ -117,9 +117,9 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/nabd-release.jks
-          detected_alias="$(keytool -list -keystore android/nabd-release.jks \
+          detected_alias="$(keytool -list -v -keystore android/nabd-release.jks \
             -storepass "$ANDROID_KEYSTORE_PASSWORD" 2>/dev/null \
-            | awk -F': ' '/^Alias name:/{print $2; exit}')"
+            | sed -n 's/^Alias name: //p' | head -n 1)"
           test -n "$detected_alias"
           if [ "$detected_alias" != "$ANDROID_KEY_ALIAS" ]; then
             echo "Configured key alias does not match the keystore; using the keystore alias."
