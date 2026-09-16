@@ -1,11 +1,11 @@
-# قائمة التحقق قبل الإطلاق — نبض
+# قائمة التحقق قبل الإطلاق — Pulse
 
 ## 1. الأصول (Assets)
 
 - [ ] `assets/icons/app_icon.png` موجود (1024×1024)
 - [ ] `assets/icons/app_icon_fg.png` موجود (1024×1024)
 - [ ] `assets/icons/splash.png` موجود (800×800)
-- [ ] `assets/sounds/*.mp3` = 10 ملفات (>5KB لكل)
+- [ ] `assets/sounds/*.mp3` = 18 ملفات (>5KB لكل)
 - [ ] `assets/store/output/*.png` = 6 صور (1080×1920)
 - [ ] `docs/SOUNDS_ATTRIBUTION.md` محدّث
 - [ ] `flutter_launcher_icons` نُفِّذ بنجاح
@@ -72,8 +72,8 @@
 - [ ] AdMob App ID موجود
 - [ ] `applicationId = "com.nabd.journal"`
 - [ ] `namespace = "com.nabd.journal"`
-- [ ] `minSdk = 24` (Android 7)
-- [ ] `targetSdk = 34` (Android 14)
+- [ ] `minSdk = 23` (يتطلبه record_android)
+- [ ] `targetSdk` يطابق قيمة Flutter SDK الحالية
 - [ ] `proguard-rules.pro` موجود
 - [ ] `signingConfig` مضبوط
 - [ ] `keystore` منشأ ومحفوظ بأمان
@@ -82,7 +82,7 @@
 
 - [ ] `Info.plist` مكتمل
 - [ ] AdMob App ID موجود
-- [ ] `CFBundleIdentifier = "app.nabd.journal"`
+- [ ] ضبط `PRODUCT_BUNDLE_IDENTIFIER` الفعلي في مشروع iOS قبل نشر iOS
 - [ ] `SKAdNetworkItems` موجودة
 - [ ] `NSUserTrackingUsageDescription` موجود
 - [ ] `InfoPlist.strings` للغات المختلفة
@@ -91,7 +91,7 @@
 
 ## 8. متجر Google Play
 
-- [ ] عنوان التطبيق: "نبض — مذكرتك الخاصة"
+- [ ] عنوان التطبيق: "Pulse — Private Journal"
 - [ ] الوصف القصير (< 80 حرف)
 - [ ] الوصف الكامل (< 4000 حرف)
 - [ ] 6 صور (1080×1920)

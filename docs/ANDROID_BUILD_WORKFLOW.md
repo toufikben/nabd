@@ -27,4 +27,4 @@
 
 ## ملاحظات
 
-بما أن ملفات المنصة الأصلية في هذا المستودع مستخرجة جزئيًا، يحتوي workflow على bootstrap آمن عبر `flutter create --platforms=android --org com.productchat.studio .` عند غياب ملفات إعداد Android. يجب مراجعة الناتج في أول تشغيل فعلي قبل اعتماد Release.
+بما أن ملفات المنصة الأصلية في هذا المستودع مستخرجة جزئيًا، يحتوي workflow على bootstrap آمن عبر `flutter create --platforms=android --org com.nabd .` عند غياب ملفات إعداد Android. يجب مراجعة الناتج في أول تشغيل فعلي قبل اعتماد Release.

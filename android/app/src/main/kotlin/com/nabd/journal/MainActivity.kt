@@ -1,4 +1,4 @@
-package com.productchat.studio.nabd
+package com.nabd.journal
 
 import io.flutter.embedding.android.FlutterActivity
 

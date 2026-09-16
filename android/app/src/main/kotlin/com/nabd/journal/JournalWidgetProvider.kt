@@ -1,4 +1,4 @@
-package com.productchat.studio.nabd
+package com.nabd.journal
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
