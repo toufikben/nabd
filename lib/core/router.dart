@@ -30,6 +30,7 @@ import '../features/social/legacy_journal_screen.dart';
 import '../features/social/time_capsule_screen.dart';
 import '../features/motivation/achievements_screen.dart';
 import '../features/motivation/challenges_screen.dart';
+import '../features/navigation/section_hub_screen.dart';
 import '../services/biometric_service.dart';
 
 String? _entryIdFromState(GoRouterState state) {
@@ -73,6 +74,18 @@ final router = GoRouter(
     GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
     GoRoute(path: '/lock', builder: (_, __) => const LockScreen()),
     GoRoute(path: '/home', builder: (_, __) => const HomeScreen()),
+    GoRoute(
+        path: '/writing',
+        builder: (_, __) =>
+            const SectionHubScreen(section: NabdSection.writing)),
+    GoRoute(
+        path: '/journey',
+        builder: (_, __) =>
+            const SectionHubScreen(section: NabdSection.journey)),
+    GoRoute(
+        path: '/analytics',
+        builder: (_, __) =>
+            const SectionHubScreen(section: NabdSection.analytics)),
     GoRoute(
         path: '/editor',
         builder: (_, state) => EditorScreen(entryId: _entryIdFromState(state))),

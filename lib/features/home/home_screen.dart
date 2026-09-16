@@ -7,6 +7,7 @@ import '../../models/journal_entry.dart';
 import '../../models/mood.dart';
 import '../../services/database_service.dart';
 import '../../widgets/entry_card.dart';
+import '../navigation/app_bottom_navigation.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -179,6 +180,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         icon: const Icon(Icons.add),
         label: const Text('New Entry'),
       ),
+      bottomNavigationBar: const AppBottomNavigation(currentIndex: 0),
     );
   }
 
