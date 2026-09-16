@@ -16,6 +16,7 @@ import '../../services/motivation_service.dart';
 import '../../services/monetization_service.dart';
 import '../../services/voice_to_text_service.dart';
 import '../../widgets/mood_picker.dart';
+import '../../widgets/soundscape_bar.dart';
 
 class EditorScreen extends ConsumerStatefulWidget {
   final String? entryId;
@@ -432,6 +433,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   ),
                 ],
               ),
+            ),
+
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: SoundscapeBar(),
             ),
 
             // ─── Tags chips ───
